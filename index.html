@@ -1,0 +1,2153 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#00a4e4">
+<title>HURT SHOP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- ต่อ TLS ล่วงหน้าให้เซิร์ฟเวอร์ล็อกอิน/ฐานข้อมูล — ลดเวลารอบนเน็ตมือถือ -->
+<link rel="preconnect" href="https://accounts.google.com">
+<link rel="preconnect" href="https://identitytoolkit.googleapis.com">
+<link rel="preconnect" href="https://securetoken.googleapis.com">
+<link rel="preconnect" href="https://bank-48baf-default-rtdb.asia-southeast1.firebasedatabase.app">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="bank-manifest.json">
+<link rel="apple-touch-icon" href="hurt-logo.jpg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HURT SHOP">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  input, select, textarea, button { font-family: inherit; }
+  :root {
+    --bg: #0b1620; --card: #15242f; --card2: #1d3340; --line: #2c4452;
+    --text: #f1f5f9; --muted: #93acba; --green: #22c55e; --green-d: #16a34a;
+    --blue: #00a4e4; --red: #ef4444; --accent: #4cc9f0; --amber: #f59e0b;
+    --cyan: #00a4e4; --cyan-d: #0086c9;
+    /* ───── Liquid Glass ───── */
+    --glass:    rgba(255,255,255,.035);
+    --glass-2:  rgba(255,255,255,.06);
+    --glass-bd: rgba(255,255,255,.14);
+    --glass-hi: rgba(255,255,255,.28);   /* แสง specular ขอบบน */
+    --blur:     saturate(180%) blur(22px);
+    --glass-sh: 0 8px 30px rgba(0,0,0,.30);
+    --inset-hi: inset 0 1px 0 var(--glass-hi), inset 0 0 0 .5px rgba(255,255,255,.05);
+  }
+  body {
+    font-family: 'IBM Plex Sans Thai', -apple-system, BlinkMacSystemFont, "Segoe UI", "Sukhumvit Set", "Helvetica Neue", sans-serif;
+    color: var(--text); min-height: 100vh;
+    padding-bottom: 96px; -webkit-text-size-adjust: 100%;
+    background:
+      radial-gradient(1100px 620px at 82% -8%,  rgba(0,164,228,.22), transparent 60%),
+      radial-gradient(820px 520px at -12% 18%,  rgba(0,164,228,.18), transparent 55%),
+      radial-gradient(760px 560px at 50% 118%,  rgba(0,134,201,.20), transparent 60%),
+      linear-gradient(165deg, #08131c 0%, #0a1a25 100%);
+    background-attachment: fixed;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 16px; }
+
+  header { text-align: center; padding: 18px 16px 12px; position: relative; }
+  header h1 { font-size: 20px; font-weight: 700; }
+  header p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .gear {
+    position: absolute; top: 16px; right: 4px;
+    background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+    border: 1px solid var(--glass-bd); color: var(--text); width: 40px; height: 40px;
+    border-radius: 14px; font-size: 18px; cursor: pointer;
+    box-shadow: var(--glass-sh), var(--inset-hi);
+  }
+  /* sync status pill */
+  .syncpill {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+    background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+    border: 1px solid var(--glass-bd); color: var(--muted);
+    padding: 5px 12px; border-radius: 999px; margin-top: 10px; cursor: pointer;
+    box-shadow: var(--glass-sh), var(--inset-hi);
+  }
+  .syncpill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .syncpill.on .dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .syncpill.err .dot { background: var(--red); }
+  .syncpill.connecting .dot { background: var(--amber); animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .3; } }
+
+  .summary {
+    position: relative; overflow: hidden;
+    background:
+      radial-gradient(200px 200px at 116% 128%, rgba(255,255,255,.12), transparent 60%),
+      radial-gradient(130px 130px at 102% -12%, rgba(255,255,255,.09), transparent 60%),
+      linear-gradient(135deg, rgba(0,164,228,.58), rgba(0,106,163,.5));
+    -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+    border: 1px solid var(--glass-bd); border-radius: 22px;
+    padding: 20px 20px; margin: 14px 0 16px;
+    box-shadow: 0 12px 34px rgba(0,164,228,.32), var(--inset-hi);
+  }
+  .summary .card-top { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; letter-spacing: .3px; opacity: .92; margin-bottom: 12px; }
+  .summary .card-top .chip { width: 26px; height: 19px; border-radius: 5px; background: linear-gradient(135deg, #ffe38a, #cfa219); box-shadow: inset 0 0 0 1px rgba(0,0,0,.18); flex-shrink: 0; }
+  .summary::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(120% 80% at 15% 0%, rgba(255,255,255,.35), transparent 55%);
+    opacity: .6;
+  }
+  .summary > * { position: relative; z-index: 1; }
+  .summary .label { font-size: 13px; opacity: .85; }
+  .summary .total { font-size: 38px; font-weight: 700; letter-spacing: -1px; margin-top: 4px; word-break: break-all; }
+  .summary .total small { font-size: 18px; font-weight: 600; opacity: .85; }
+  .summary .meta { display: flex; gap: 14px; margin-top: 14px; font-size: 13px; border-top: 1px solid rgba(255,255,255,.25); padding-top: 12px; }
+  .summary .meta div span { display: block; opacity: .8; font-size: 11px; }
+  .summary .meta div b { font-size: 15px; font-weight: 700; }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .stat { background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border: 1px solid var(--glass-bd); border-radius: 16px; padding: 12px 14px; box-shadow: var(--glass-sh), var(--inset-hi); }
+  .stat span { color: var(--muted); font-size: 12px; }
+  .stat b { display: block; font-size: 18px; font-weight: 700; margin-top: 2px; }
+
+  .bar { display: flex; gap: 8px; margin-bottom: 12px; }
+  .bar select, .bar input {
+    flex: 1; background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+    border: 1px solid var(--glass-bd); color: var(--text);
+    border-radius: 14px; padding: 11px 12px; font-size: 14px;
+    box-shadow: var(--inset-hi);
+    -webkit-appearance: none; appearance: none; outline: none;
+  }
+  .bar select {
+    padding-right: 32px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237c93a3' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+  }
+  /* ปิด chrome เนทีฟของ iOS (กล่องค้นหา/ปุ่มล้าง/ขอบสีระบบ) */
+  .bar input[type=search]::-webkit-search-decoration,
+  .bar input[type=search]::-webkit-search-cancel-button,
+  .bar input[type=search]::-webkit-search-results-button { -webkit-appearance: none; appearance: none; display: none; }
+
+  .list { display: flex; flex-direction: column; gap: 10px; }
+  .item { background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border: 1px solid var(--glass-bd); border-radius: 16px; padding: 13px 14px; display: flex; align-items: center; gap: 12px; box-shadow: var(--glass-sh), var(--inset-hi); }
+  .item .ava { width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0; background: rgba(34,197,94,.15); color: var(--green); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .item .info { flex: 1; min-width: 0; }
+  .item .info .name { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item .info .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .item .info .note { color: var(--muted); font-size: 12px; margin-top: 2px; font-style: italic; }
+  .item .amt { text-align: right; flex-shrink: 0; }
+  .item .amt b { color: var(--green); font-size: 16px; font-weight: 700; }
+  .item .amt .del { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; cursor: pointer; background: none; border: none; }
+  .item .amt .del:active { color: var(--red); }
+  .item .ava.out { background: rgba(239,68,68,.15); color: var(--red); }
+  .item .amt b.amt-out { color: var(--red); }
+  .item .info .slip.out-tag { color: #fca5a5; }
+  .summary .total.neg { color: #fecaca; }
+  .summary .meta div b.mt-in { color: #bbf7d0; }
+  .summary .meta div b.mt-out { color: #fecaca; }
+  .slipview { display: inline-flex; align-items: center; gap: 4px; margin-top: 5px; background: var(--glass-2); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border: 1px solid var(--glass-bd); color: var(--accent); border-radius: 9px; padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: inherit; box-shadow: var(--inset-hi); }
+  .slip-lightbox { position: fixed; inset: 0; z-index: 120; background: rgba(0,0,0,.86); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); display: none; align-items: center; justify-content: center; padding: 20px; flex-direction: column; }
+  .slip-lightbox.show { display: flex; animation: fade .2s ease; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  .slip-lightbox img { max-width: 100%; max-height: 82vh; border-radius: 14px; box-shadow: 0 12px 44px rgba(0,0,0,.7); }
+  .slip-lb-msg { color: #cfeef7; font-size: 14px; margin-top: 14px; text-align: center; }
+  .slip-lb-close { color: #cfeef7; font-size: 13px; margin-top: 16px; opacity: .8; }
+  /* ป๊อปอัพผู้ช่วย (iframe) */
+  .asst-modal { position: fixed; inset: 0; z-index: 30; background: var(--bg); display: none; }
+  .asst-modal.show { display: block; animation: fade .2s ease; }
+  .asst-box { position: absolute; inset: 0 0 calc(96px + env(safe-area-inset-bottom)) 0; margin: 0 auto; width: 100%; max-width: 620px; overflow: hidden; box-shadow: none; border: none; background: var(--bg); animation: pagein .28s cubic-bezier(.22,1,.36,1); }
+  .asst-box iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .asst-close { position: absolute; top: 10px; right: 10px; z-index: 2; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--glass-bd); background: rgba(8,19,28,.6); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+  .empty { text-align: center; color: var(--muted); padding: 50px 20px; }
+  .empty .ic { font-size: 50px; }
+  .empty p { margin-top: 10px; font-size: 14px; }
+  .group-date { color: var(--muted); font-size: 12px; font-weight: 600; margin: 10px 2px 2px; display: flex; justify-content: space-between; }
+
+  /* คิวรออนุมัติ (สลิปไม่มี QR) */
+  #pendingBox { margin: 4px 0 14px; }
+  .pending-head { font-size: 13px; font-weight: 700; color: var(--amber); margin: 0 2px 8px; }
+  .pending-item { background: rgba(245,158,11,.10); border: 1px solid rgba(245,158,11,.38); border-radius: 14px; padding: 12px 13px; margin-bottom: 8px; display: block; overflow: hidden; }
+  .pending-item .pi-info { min-width: 0; margin-bottom: 10px; }
+  .pi-amt { font-size: 16px; font-weight: 700; color: var(--text); }
+  .pi-tag { font-size: 10px; font-weight: 600; color: var(--amber); background: rgba(245,158,11,.18); border-radius: 6px; padding: 1px 6px; vertical-align: 1px; }
+  .pi-sub { font-size: 12px; color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+  .pi-by { font-size: 11px; color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+  .pi-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .pi-ok { flex: 1 1 auto; }   /* ปุ่มอนุมัติกว้างเด่น กดง่าย */
+  .pi-btn { border: none; border-radius: 10px; padding: 8px 12px; font-size: 13px; font-family: inherit; font-weight: 600; cursor: pointer; }
+  .pi-view { background: var(--card2); color: var(--text); border: 1px solid var(--line); }
+  .pi-ok { background: linear-gradient(135deg, var(--green), var(--green-d)); color: #fff; }
+  .pi-no { background: rgba(239,68,68,.16); color: #fca5a5; }
+  .pi-wait { font-size: 12px; color: var(--amber); align-self: center; }
+
+  .fab {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    width: calc(100% - 32px); max-width: 528px;
+    background: linear-gradient(135deg, rgba(0,164,228,.28), rgba(0,134,201,.20)); color: #e7f7ff;
+    -webkit-backdrop-filter: saturate(180%) blur(22px); backdrop-filter: saturate(180%) blur(22px);
+    border: 1px solid rgba(255,255,255,.30); border-radius: 18px; padding: 16px; font-size: 16px; font-weight: 700;
+    text-shadow: 0 1px 3px rgba(0,0,0,.35);
+    box-shadow: 0 10px 28px rgba(0,164,228,.22), inset 0 1px 0 rgba(255,255,255,.40); cursor: pointer;
+  }
+  .fab:active { transform: translateX(-50%) scale(.98); }
+  /* ปุ่มผู้ช่วยลอย (ค้างมุมจอ เหนือปุ่มเพิ่มยอด) */
+  .asst-fab {
+    position: fixed; bottom: 92px; right: 16px; z-index: 45;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, rgba(0,164,228,.92), rgba(0,134,201,.92)); color: #04283a;
+    -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+    border: 1px solid rgba(255,255,255,.4); font-size: 25px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 26px rgba(0,164,228,.45), inset 0 1px 0 rgba(255,255,255,.5);
+    transition: transform .2s cubic-bezier(.34,1.45,.5,1), box-shadow .25s ease;
+  }
+  .asst-fab:active { transform: scale(.9); }
+  @media (hover: hover) { .asst-fab:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,164,228,.6), inset 0 1px 0 rgba(255,255,255,.5); } }
+
+  /* เมนู = หน้าเต็ม (ไม่เด้ง popup) — แถบล่างลอยอยู่บนสุด */
+  .modal { position: fixed; inset: 0; background: var(--bg); display: none; z-index: 30; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .modal.show { display: block; }
+  .sheet { background: none; width: 100%; max-width: 620px; margin: 0 auto; min-height: 100%; border: none; border-radius: 0; padding: 20px 16px calc(100px + env(safe-area-inset-bottom)); animation: pagein .28s cubic-bezier(.22,1,.36,1); box-shadow: none; }
+  @keyframes up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  @keyframes pagein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .sheet h2 { font-size: 18px; margin-bottom: 16px; text-align: center; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .field input, .field select, .field textarea {
+    width: 100%; background: var(--glass-2); border: 1px solid var(--glass-bd); color: var(--text);
+    border-radius: 14px; padding: 13px 14px; font-size: 16px; outline: none; box-shadow: var(--inset-hi); -webkit-appearance: none; appearance: none; font-family: inherit;
+  }
+  .field textarea { resize: vertical; min-height: 90px; font-size: 13px; }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+  .field .amount-in { font-size: 24px; font-weight: 700; text-align: center; color: var(--green); }
+  .row2 { display: flex; gap: 10px; }
+  .row2 .field { flex: 1; }
+  .btns { display: flex; gap: 10px; margin-top: 8px; }
+  .btns button { flex: 1; border: none; border-radius: 14px; padding: 15px; font-size: 16px; font-weight: 700; cursor: pointer; }
+  .btn-save { background: var(--green); color: #fff; }
+  .btn-cancel { background: var(--card2); color: var(--text); }
+  .hint { font-size: 12px; color: var(--muted); line-height: 1.6; background: var(--card2); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+  .hint b { color: var(--text); }
+  .hint a { color: var(--accent); }
+  .hint ol { margin: 6px 0 0 18px; }
+  .hint li { margin-bottom: 3px; }
+
+  .io-toggle { display: flex; gap: 6px; background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border: 1px solid var(--glass-bd); border-radius: 14px; padding: 4px; margin-bottom: 12px; box-shadow: var(--inset-hi); }
+  .io-btn { flex: 1; background: transparent; border: none; color: var(--muted); border-radius: 11px; padding: 10px 6px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background .2s, color .2s; }
+  .io-btn.active[data-io="in"] { background: linear-gradient(135deg, rgba(34,197,94,.95), rgba(22,163,74,.95)); color: #04220f; box-shadow: 0 4px 14px rgba(34,197,94,.4), inset 0 1px 0 rgba(255,255,255,.45); }
+  .io-btn.active[data-io="out"] { background: linear-gradient(135deg, rgba(239,68,68,.95), rgba(201,45,45,.95)); color: #2a0606; box-shadow: 0 4px 14px rgba(239,68,68,.4), inset 0 1px 0 rgba(255,255,255,.45); }
+  body.role-employee #ioToggle { display: none; }
+  .slip-primary { background: rgba(56,189,248,.08); border: 1px dashed var(--accent); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+  .slip-primary label { color: var(--accent); font-weight: 600; font-size: 14px; }
+  .autofill-note { font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 12px; }
+  .seg { display: flex; gap: 6px; background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border: 1px solid var(--glass-bd); border-radius: 14px; padding: 4px; margin-bottom: 10px; box-shadow: var(--inset-hi); }
+  .seg-btn { flex: 1; background: transparent; border: none; color: var(--muted); border-radius: 11px; padding: 9px 6px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background .2s, color .2s; }
+  .seg-btn.active { background: linear-gradient(135deg, rgba(0,164,228,.95), rgba(0,134,201,.95)); color: #04283a; box-shadow: 0 4px 14px rgba(0,164,228,.4), inset 0 1px 0 rgba(255,255,255,.45); }
+  .slipstatus { font-size: 13px; margin-top: 8px; line-height: 1.5; border-radius: 10px; padding: 0; }
+  .slipstatus.show { padding: 10px 12px; }
+  .slipstatus.ok { background: rgba(34,197,94,.12); color: #86efac; border: 1px solid rgba(34,197,94,.3); }
+  .slipstatus.dup { background: rgba(239,68,68,.12); color: #fca5a5; border: 1px solid rgba(239,68,68,.4); }
+  .slipstatus.warn { background: rgba(245,158,11,.12); color: #fcd34d; border: 1px solid rgba(245,158,11,.3); }
+  .slipstatus.busy { background: var(--card2); color: var(--muted); border: 1px solid var(--line); }
+  .item .info .slip { font-size: 11px; margin-top: 2px; display: inline-flex; align-items: center; gap: 4px; }
+  .item .info .slip.has { color: #86efac; }
+  .tools { display: flex; gap: 8px; justify-content: center; margin: 18px 0 4px; flex-wrap: wrap; }
+  .tools button { background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border: 1px solid var(--glass-bd); color: var(--muted); border-radius: 12px; padding: 8px 14px; font-size: 13px; cursor: pointer; box-shadow: var(--inset-hi); }
+
+  /* รายงาน */
+  #reportBody h2 { font-size: 18px; margin-bottom: 4px; }
+  #reportBody .rsub { color: var(--muted); font-size: 12px; margin-bottom: 16px; }
+  #reportBody h3 { font-size: 14px; margin: 18px 0 8px; color: var(--text); }
+  .rstat { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 6px; }
+  .rstat div { background: var(--card2); border-radius: 10px; padding: 10px; text-align: center; }
+  .rstat span { display: block; font-size: 11px; color: var(--muted); }
+  .rstat b { font-size: 16px; }
+  .chart { display: flex; align-items: flex-end; gap: 3px; height: 120px; padding: 4px 0; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+  .cbar { width: 78%; background: linear-gradient(180deg, var(--cyan), var(--cyan-d)); border-radius: 4px 4px 0 0; min-height: 2px; }
+  .bar-col em { font-size: 9px; color: var(--muted); margin-top: 4px; font-style: normal; white-space: nowrap; }
+  .toplist { display: flex; flex-direction: column; gap: 6px; }
+  .toprow { display: flex; justify-content: space-between; background: var(--card2); border-radius: 9px; padding: 9px 12px; font-size: 14px; }
+  .toprow b { color: var(--green); }
+
+  @media print {
+    body:not(.pdf-mode) > *:not(#report) { display: none !important; }
+    body:not(.pdf-mode) #report { display: block !important; position: static !important; background: #fff !important; }
+    #report .sheet { max-height: none !important; box-shadow: none !important; border-radius: 0 !important; background: #fff !important; padding: 0 !important; animation: none !important; }
+    #report, #report * { color: #000 !important; }
+    #report .btns { display: none !important; }
+    .rstat div, .toprow { background: #f0f4f7 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .cbar { background: #006aa3 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .toprow b { color: #0a7d3a !important; }
+    /* ส่งออก PDF (รายการทั้งหมด) */
+    body.pdf-mode > *:not(#pdfDoc) { display: none !important; }
+    body.pdf-mode #pdfDoc { display: block !important; color: #000; }
+    #pdfDoc table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    #pdfDoc th, #pdfDoc td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
+    #pdfDoc th { background: #eef4f7 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+  #pdfDoc { display: none; }
+
+  /* login gate */
+  /* หน้าโหลด (วิดีโอ intro) */
+  #splash { position: fixed; inset: 0; z-index: 200; background: #000; display: flex; align-items: center; justify-content: center; transition: opacity .45s ease; }
+  #splash video { width: 100%; height: 100%; object-fit: cover; }
+
+  .login-screen {
+    position: fixed; inset: 0; z-index: 100;
+    background: linear-gradient(160deg, #0b1620 0%, #0a2c3d 55%, #0e3d55 100%);
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .login-box {
+    text-align: center; max-width: 360px; width: 100%;
+    background: var(--glass); -webkit-backdrop-filter: saturate(180%) blur(24px); backdrop-filter: saturate(180%) blur(24px);
+    border: 1px solid var(--glass-bd); border-radius: 28px; padding: 34px 26px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.45), var(--inset-hi);
+  }
+  .login-logo { font-size: 64px; margin-bottom: 8px; }
+  .login-logo-img { width: 110px; height: 110px; object-fit: cover; border-radius: 26px; margin-bottom: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+  .hdr-logo { width: 30px; height: 30px; object-fit: cover; border-radius: 8px; vertical-align: -7px; margin-right: 4px; }
+  .login-box h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+  .login-box p { color: var(--muted); font-size: 14px; margin-bottom: 26px; line-height: 1.5; }
+  .g-btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; background: #fff; color: #1f2937; border: none; border-radius: 14px;
+    padding: 15px; font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit;
+    box-shadow: 0 6px 20px rgba(0,0,0,.3);
+  }
+  .g-btn:active { transform: scale(.98); }
+  .login-signout { margin-top: 16px; background: transparent; border: none; color: var(--muted); font-size: 13px; cursor: pointer; text-decoration: underline; }
+
+  /* พนักงาน: ซ่อนปุ่ม ลบ/ล้าง (เพิ่มได้อย่างเดียว) */
+  body.role-employee .item .amt .del { display: none; }
+  body.role-employee #clearBtn, body.role-employee #restoreBtn { display: none; }
+  body.role-employee #ownerOnlySettings { display: none; }   /* ซ่อน config ทั้งหมดจากพนักงาน */
+  body.role-employee .emp-only { display: block !important; }
+  body.role-employee .item { cursor: default; }
+  .role-badge { display:none; font-size:11px; color:var(--amber); margin-top:6px; }
+  body.role-employee .role-badge { display:block; }
+
+  /* ───── อนิเมชันปุ่มนุ่มๆ ───── */
+  .fab, .btns button, .g-btn, .gear, .tools button, .item, .syncpill, .login-signout {
+    transition: transform .2s cubic-bezier(.34,1.45,.5,1), box-shadow .25s ease, background-color .2s ease, filter .2s ease, border-color .2s ease;
+  }
+  /* ช่องกรอง/ค้นหา: โฟกัสสะอาด ไม่มีแสงฟ้าเกิน (กันแสงโฟกัสของ Safari) */
+  .bar select, .bar input { transition: border-color .2s ease; box-shadow: none !important; }
+  .bar select:focus, .bar input:focus { border-color: var(--accent); outline: none; box-shadow: none !important; }
+  .btns button:active, .tools button:active, .gear:active, .g-btn:active, .syncpill:active { transform: scale(.93); }
+  .item:active { transform: scale(.98); }
+  @media (hover: hover) {
+    .btns .btn-save:hover, .g-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .btns .btn-cancel:hover, .tools button:hover, .gear:hover { background: var(--card2); border-color: var(--accent); }
+    .item:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 22px rgba(0,0,0,.32); }
+    .fab:hover { filter: brightness(1.05); }
+  }
+  /* ───── ripple (คลื่นตอนแตะ) + เด้ง modal นุ่มขึ้น ───── */
+  .fab, .asst-fab, .gear, .btns button, .g-btn, .tools button, .seg-btn, .slipview { overflow: hidden; }
+  .btns button, .g-btn, .tools button, .seg-btn, .slipview { position: relative; }
+  .rip { position: absolute; border-radius: 50%; transform: scale(0); background: rgba(255,255,255,.38); pointer-events: none; animation: rip .55s cubic-bezier(.25,.7,.35,1) forwards; z-index: 3; }
+  .g-btn .rip { background: rgba(0,0,0,.13); }
+  .seg-btn.active .rip { background: rgba(4,40,58,.22); }
+  @keyframes rip { to { transform: scale(2.5); opacity: 0; } }
+  .sheet { animation: pagein .3s cubic-bezier(.22,1,.36,1); }
+  .modal.show { animation: fade .22s ease; }
+  @media (prefers-reduced-motion: reduce) { .rip { display: none; } }
+
+  /* ───── แถบล่าง (แคปซูลลอย floating) ───── */
+  .tabbar {
+    position: fixed; bottom: calc(12px + env(safe-area-inset-bottom)); left: 10px; right: 10px; z-index: 40;
+    max-width: 480px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-around; gap: 1px;
+    padding: 6px 6px;
+    border: 1px solid rgba(255,255,255,.16); border-radius: 28px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.20), rgba(255,255,255,.03) 46%, rgba(255,255,255,0) 62%) padding-box,
+      linear-gradient(180deg, rgba(26,44,58,.42), rgba(11,22,32,.52)) padding-box;
+    -webkit-backdrop-filter: blur(30px) saturate(200%) brightness(1.08);
+    backdrop-filter: blur(30px) saturate(200%) brightness(1.08);
+    box-shadow:
+      0 18px 42px rgba(0,0,0,.55), 0 3px 10px rgba(0,0,0,.35),
+      inset 0 1px 0 rgba(255,255,255,.55),
+      inset 0 -8px 14px rgba(255,255,255,.05),
+      inset 0 0 0 .5px rgba(255,255,255,.07);
+  }
+  .tab { flex: 1 1 0; min-width: 0; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: none; border: none; color: var(--muted); font-family: inherit; font-size: 11px; cursor: pointer; padding: 7px 0 6px; border-radius: 16px; transition: color .18s ease, background .22s ease; }
+  .tab span:not(.ti):not(.tc) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tab .ti { width: 23px; height: 23px; display: flex; align-items: center; justify-content: center; filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); transition: transform .2s cubic-bezier(.34,1.45,.5,1); }
+  .tab .ti svg { width: 23px; height: 23px; display: block; }
+  .tab:active { color: var(--accent); }
+  .tab:active .ti { transform: scale(.88); }
+  @media (hover: hover) { .tab:hover { color: var(--text); } }
+  .tab.active { color: #fff;
+    background: linear-gradient(180deg, rgba(120,215,255,.38), rgba(0,150,220,.52));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.6), inset 0 -6px 10px rgba(0,110,170,.28), 0 5px 16px rgba(0,164,228,.5);
+  }
+  .tab.active .ti { color: #fff; }
+  .tab.center .tc {
+    width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    background: radial-gradient(125% 125% at 50% 22%, rgba(180,235,255,.98), var(--cyan) 46%, var(--cyan-d));
+    box-shadow: inset 0 1.5px 0 rgba(255,255,255,.75), inset 0 -3px 6px rgba(0,90,140,.45), 0 4px 13px rgba(0,164,228,.6);
+    transition: transform .2s cubic-bezier(.34,1.45,.5,1);
+  }
+  .tab.center .tc svg { width: 20px; height: 20px; display: block; }
+  .tab.center:active .tc { transform: scale(.88); }
+
+  /* ───── จอคอม/แท็บเล็ต (กว้างขึ้น) ───── */
+  @media (min-width: 768px) {
+    body { padding-bottom: 96px; }
+    .wrap { max-width: 940px; padding: 24px 24px 40px; }
+    .tabbar { max-width: 520px; }
+    header { padding-top: 24px; }
+    header h1 { font-size: 24px; }
+    /* ยอดสรุป + สถิติ เรียงข้างกัน */
+    .top-row { display: flex; gap: 16px; align-items: stretch; margin-bottom: 18px; }
+    .top-row .summary { flex: 2; margin: 0; }
+    .top-row .stats { flex: 1; grid-template-columns: 1fr; gap: 16px; margin: 0; }
+    .top-row .stats .stat { display: flex; flex-direction: column; justify-content: center; }
+    /* รายการ 2 คอลัมน์ (หัววันที่/ข้อความว่าง กินเต็มแถว) */
+    .list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+    .list .group-date, .list .empty { grid-column: 1 / -1; }
+    /* ปุ่มเพิ่มเป็นปุ่มมุมขวาล่าง (ไม่เต็มความกว้าง) */
+    .fab { left: auto; right: 28px; transform: none; width: auto; min-width: 230px; padding: 15px 30px; }
+    .fab:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,164,228,.55); }
+    .fab:active { transform: scale(.97); }
+  }
+  @media (min-width: 1100px) {
+    .list { grid-template-columns: 1fr 1fr 1fr; }  /* จอกว้างมาก = 3 คอลัมน์ */
+  }
+
+  /* ═══════════ ปรับดีไซน์ให้ทันสมัย/พรีเมียมขึ้น ═══════════ */
+  header h1 { letter-spacing: .3px; background: linear-gradient(120deg, #f2fbff 30%, #b3e7fb); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .hdr-logo { box-shadow: 0 0 18px rgba(0,164,228,.5); }
+  /* ตัวเลขเรียงสวย (tabular) */
+  .summary .total, .summary .meta div b, .stat b, .item .amt b, .group-date span:last-child { font-variant-numeric: tabular-nums; }
+  .summary .total { font-size: 40px; letter-spacing: -1.2px; }
+  .summary .label { text-transform: uppercase; letter-spacing: 1.4px; font-size: 11px; font-weight: 600; opacity: .8; }
+  /* แสงกวาดบนการ์ดยอด (พรีเมียม) */
+  .summary::after {
+    content: ""; position: absolute; top: 0; left: -60%; width: 45%; height: 100%; pointer-events: none;
+    background: linear-gradient(105deg, transparent, rgba(255,255,255,.22), transparent);
+    transform: skewX(-18deg); animation: shine 7s ease-in-out infinite;
+  }
+  @keyframes shine { 0%, 66% { left: -60%; } 100% { left: 135%; } }
+  .stat { transition: transform .2s cubic-bezier(.34,1.45,.5,1), border-color .2s ease, box-shadow .2s ease; }
+  .stat b { font-size: 20px; letter-spacing: -.3px; }
+  .stat span { text-transform: uppercase; letter-spacing: .8px; font-size: 11px; }
+  /* ไอคอนรายการดูดีขึ้น */
+  .item .ava { background: linear-gradient(135deg, rgba(34,197,94,.28), rgba(34,197,94,.05)); border: 1px solid rgba(34,197,94,.28); box-shadow: inset 0 1px 0 rgba(255,255,255,.14); font-weight: 700; }
+  .item .ava.out { background: linear-gradient(135deg, rgba(239,68,68,.28), rgba(239,68,68,.05)); border: 1px solid rgba(239,68,68,.28); }
+  .sheet { position: relative; }
+  #reportSheet::before { display: none; }
+  @media (hover: hover) {
+    .stat:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 8px 22px rgba(0,164,228,.18), var(--inset-hi); }
+  }
+  @media print { .summary::after { display: none !important; } }
+  /* scrollbar สวยบนคอม */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.13); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.22); background-clip: padding-box; }
+  @media (prefers-reduced-motion: reduce) { .summary::after { animation: none; } }
+</style>
+</head>
+<body>
+<div id="splash"><video id="introVid" muted playsinline autoplay preload="auto" src="intro.mp4"></video></div>
+<script>
+(function(){
+  var s=document.getElementById('splash'), v=document.getElementById('introVid'), done=false;
+  function end(){ if(done)return; done=true; s.style.opacity='0'; setTimeout(function(){ if(s&&s.parentNode) s.parentNode.removeChild(s); }, 450); }
+  v.addEventListener('loadedmetadata', function(){ if(v.duration && isFinite(v.duration) && v.duration>0){ v.playbackRate = Math.min(8, Math.max(0.5, v.duration/6.5)); } });
+  v.addEventListener('ended', end);
+  v.addEventListener('error', end);
+  setTimeout(end, 9000); // เผื่อวิดีโอโหลดไม่ได้ จะได้ไม่ค้าง
+  var p=v.play(); if(p&&p.catch) p.catch(function(){});
+})();
+</script>
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <img src="hurt-logo.jpg" alt="HURT SHOP" class="login-logo-img">
+    <h1>HURT SHOP</h1>
+    <p id="loginMsg" style="white-space:pre-line">กำลังตรวจสอบ...</p>
+    <button class="g-btn" id="gBtn" onclick="googleSignIn()" style="display:none">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      เข้าสู่ระบบด้วย Google
+    </button>
+    <button class="login-signout" id="loginSignout" onclick="googleSignOut()" style="display:none">ออกจากระบบ / สลับบัญชี</button>
+  </div>
+</div>
+<div class="wrap">
+  <header>
+    <h1><img src="hurt-logo.jpg" class="hdr-logo" alt="">HURT SHOP</h1>
+  </header>
+
+  <div class="top-row">
+  <div class="summary">
+    <div class="card-top"><span class="chip"></span> บัญชีร้าน · HURT SHOP</div>
+    <div class="label" id="sumLabel">ยอดคงเหลือ</div>
+    <div class="total"><span id="totalAmt">0</span> <small>บาท</small></div>
+    <div class="meta">
+      <div><span>รับเข้า</span><b id="sumIn" class="mt-in">0</b></div>
+      <div><span>จ่ายออก</span><b id="sumOut" class="mt-out">0</b></div>
+      <div><span>รายการ</span><b id="count">0</b></div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><span>เดือนนี้</span><b id="thisMonth">0 ฿</b></div>
+    <div class="stat"><span>วันนี้</span><b id="today">0 ฿</b></div>
+  </div>
+  </div>
+
+  <div class="seg" id="rangeSeg">
+    <button class="seg-btn active" data-r="all" onclick="setRange('all')">ทั้งหมด</button>
+    <button class="seg-btn" data-r="today" onclick="setRange('today')">วันนี้</button>
+    <button class="seg-btn" data-r="7d" onclick="setRange('7d')">7 วัน</button>
+    <button class="seg-btn" data-r="month" onclick="setRange('month')">เดือนนี้</button>
+  </div>
+  <div class="bar">
+    <select id="filterMonth"><option value="all">เลือกเดือน...</option></select>
+    <input id="search" type="search" placeholder="🔍 ค้นหา ชื่อ/ธนาคาร/โน้ต">
+  </div>
+
+  <div id="pendingBox" style="display:none"></div>
+
+  <div class="list" id="list"></div>
+
+</div>
+
+<nav class="tabbar">
+  <button class="tab active" onclick="setTab(this); goHome()"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.7 12 3.5l9 7.2"/><path d="M5.2 9.4V19a1.4 1.4 0 0 0 1.4 1.4h10.8A1.4 1.4 0 0 0 18.8 19V9.4"/><path d="M9.5 20.4v-5.2a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v5.2"/></svg></span><span>หน้าแรก</span></button>
+  <button class="tab" onclick="setTab(this); openReport()"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.2" y="12.5" width="4" height="7.3" rx="1.2"/><rect x="10" y="7.5" width="4" height="12.3" rx="1.2"/><rect x="16.8" y="4" width="4" height="15.8" rx="1.2"/></svg></span><span>รายงาน</span></button>
+  <button class="tab center" onclick="setTab(this); openModal()" aria-label="เพิ่มยอด"><span class="tc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5.5" x2="12" y2="18.5"/><line x1="5.5" y1="12" x2="18.5" y2="12"/></svg></span><span>เพิ่ม</span></button>
+  <button class="tab" onclick="setTab(this); openAssistant()"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.5a7.5 7.5 0 0 1-10.9 6.7L4.5 20l1.8-5.1A7.5 7.5 0 1 1 20.5 11.5z"/><circle cx="8.6" cy="11.4" r=".7" fill="currentColor" stroke="none"/><circle cx="12" cy="11.4" r=".7" fill="currentColor" stroke="none"/><circle cx="15.4" cy="11.4" r=".7" fill="currentColor" stroke="none"/></svg></span><span>ผู้ช่วย</span></button>
+  <button class="tab" onclick="setTab(this); openSettings()"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V15z"/></svg></span><span>ตั้งค่า</span></button>
+</nav>
+
+
+<!-- Add/Edit Modal -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <h2 id="modalTitle">เพิ่มยอดโอนเข้า</h2>
+    <input type="hidden" id="editId">
+    <div class="io-toggle" id="ioToggle">
+      <button type="button" class="io-btn active" data-io="in" onclick="setIO('in')">💰 รับเข้า</button>
+      <button type="button" class="io-btn" data-io="out" onclick="setIO('out')">💸 จ่ายออก</button>
+    </div>
+    <div class="field slip-primary">
+      <label>📎 แนบสลิป แล้วกดบันทึก (ยืนยันกับธนาคารอัตโนมัติ)</label>
+      <input id="fSlip" type="file" accept="image/*" onchange="handleSlip(this)">
+      <input type="hidden" id="fSlipRef"><input type="hidden" id="fSlipHash"><input type="hidden" id="fSlipVerified">
+      <div id="slipStatus" class="slipstatus"></div>
+    </div>
+    <div class="autofill-note">ระบบดึง ยอด/ชื่อ/วันที่ จากธนาคารให้เอง — ช่องด้านล่างใช้กรณีเจ้าของกรอกเอง</div>
+    <div class="field">
+      <label>จำนวนเงิน (บาท)</label>
+      <input id="fAmount" class="amount-in" type="number" inputmode="decimal" placeholder="0.00" step="0.01">
+    </div>
+    <div class="field">
+      <label>ผู้โอน / ชื่อรายการ</label>
+      <input id="fName" type="text" placeholder="เติมจากสลิป">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>ธนาคาร</label>
+        <select id="fBank">
+          <option value="">— เลือก —</option>
+          <option>กสิกรไทย</option><option>ไทยพาณิชย์</option><option>กรุงเทพ</option>
+          <option>กรุงไทย</option><option>กรุงศรีอยุธยา</option><option>ทหารไทยธนชาต</option>
+          <option>ออมสิน</option><option>พร้อมเพย์</option><option>TrueMoney</option><option>อื่นๆ</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>วันที่</label>
+        <input id="fDate" type="date">
+      </div>
+    </div>
+    <div class="field">
+      <label>โน้ต (ถ้ามี)</label>
+      <input id="fNote" type="text" placeholder="รายละเอียดเพิ่มเติม">
+    </div>
+    <div class="btns">
+      <button class="btn-cancel" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn-save" id="saveBtn" onclick="save()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings / Real-time Modal -->
+<div class="modal" id="settings">
+  <div class="sheet">
+    <div class="field" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card2);border-radius:12px;padding:10px 14px;margin-bottom:16px">
+      <div style="min-width:0"><div style="font-size:11px;color:var(--muted)">เข้าสู่ระบบในชื่อ</div><div id="userEmail" style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">-</div></div>
+      <button onclick="googleSignOut()" style="flex-shrink:0;background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:8px 12px;font-size:13px;cursor:pointer">ออกจากระบบ</button>
+    </div>
+    <h2 style="margin-bottom:12px">📤 ส่งออกข้อมูล</h2>
+    <div class="btns" style="margin-bottom:18px">
+      <button class="btn-cancel" style="flex:1" onclick="exportCSV()">📄 CSV</button>
+      <button class="btn-cancel" style="flex:1" onclick="exportExcel()">📊 Excel</button>
+      <button class="btn-cancel" style="flex:1" onclick="exportPDF()">🧾 PDF</button>
+    </div>
+    <p class="emp-only" style="display:none;color:var(--muted);font-size:13px;text-align:center;margin:14px 0 4px">โหมดพนักงาน — ส่งออกข้อมูลได้ ส่วนตั้งค่าอื่นเฉพาะเจ้าของ</p>
+    <div class="btns emp-only" style="display:none;margin-bottom:6px"><button class="btn-cancel" style="flex:1" onclick="closeSettings()">ปิด</button></div>
+    <div id="ownerOnlySettings">
+    <hr style="border:none;border-top:1px solid var(--line);margin:4px 0 18px">
+    <h2 style="margin-bottom:12px">🧰 สำรอง / ล้างข้อมูล</h2>
+    <div class="btns" style="margin-bottom:8px">
+      <button class="btn-cancel" style="flex:1" id="restoreBtn" onclick="restoreBackup()">↩️ กู้คืน</button>
+      <button class="btn-cancel" style="flex:1;color:#fca5a5" id="clearBtn" onclick="clearAll()">🗑️ ล้างข้อมูล</button>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--line);margin:4px 0 18px">
+    <h2>🔄 ตั้งค่า Real-time (Firebase)</h2>
+    <div class="hint">
+      ทำให้ <b>กรอกเครื่องนึง อีกเครื่องเห็นทันที</b> โดยต่อกับ Firebase ฟรีของ Google
+      <ol>
+        <li>เข้า <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> สร้างโปรเจกต์</li>
+        <li>เมนู <b>Build → Realtime Database</b> → Create Database (แนะนำ <b>Locked mode</b> แล้วตั้ง Rules จำกัดตามอีเมล — อย่าปล่อย test mode ถาวร เพราะใครก็เขียนได้)</li>
+        <li>เมนู <b>Project settings (⚙️) → General</b> เลื่อนลงล่าง กด <b>&lt;/&gt; Web app</b> สร้างแอป</li>
+        <li>คัดลอกบล็อก <b>firebaseConfig</b> ทั้งก้อน มาวางช่องล่างนี้</li>
+        <li>ตั้ง <b>รหัสห้อง</b> เป็นอะไรก็ได้ (ทุกเครื่องที่อยากเห็นยอดเดียวกันต้องใช้รหัสนี้)</li>
+      </ol>
+    </div>
+    <div class="field">
+      <label>Firebase config (วางทั้งก้อน หรือเฉพาะ { ... })</label>
+      <textarea id="sCfg" placeholder='{
+  "apiKey": "...",
+  "databaseURL": "https://xxx.firebaseio.com",
+  "projectId": "xxx",
+  ...
+}'></textarea>
+    </div>
+    <div class="field">
+      <label>รหัสห้อง (Room) — ตั้งเอง เช่น ร้านลาล่า2024</label>
+      <input id="sRoom" type="text" placeholder="myshop">
+    </div>
+    <div class="btns">
+      <button class="btn-cancel" onclick="closeSettings()">ปิด</button>
+      <button class="btn-save" onclick="saveSettings()">เชื่อมต่อ</button>
+    </div>
+    <div class="btns" style="margin-top:10px">
+      <button class="btn-cancel" style="flex:1" onclick="disconnectRT()">ตัดการเชื่อมต่อ (กลับโหมดออฟไลน์)</button>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--line);margin:22px 0 18px">
+    <h2 style="margin-bottom:12px">🆓 SlipOK (ฟรี 100 สลิป/เดือน)</h2>
+    <div class="hint">
+      ทางเลือก<b>ฟรีรายเดือน</b> ผ่าน SlipOK — ต้องมี <b>พร็อกซี Cloudflare</b> คั่น (ฟรี ตั้งครั้งเดียว)
+      <ol>
+        <li>สมัคร <a href="https://slipok.com" target="_blank">slipok.com</a> → เอา <b>API Key</b> + <b>Branch ID</b></li>
+        <li>สร้าง Cloudflare Worker ฟรี วางโค้ดที่ผมเตรียมให้ (ใส่ Key + Branch ในนั้น)</li>
+        <li>เอา <b>URL ของ Worker</b> มาวางช่องล่าง → บันทึก</li>
+      </ol>
+    </div>
+    <div class="field">
+      <label>SlipOK Proxy URL (จาก Cloudflare Worker)</label>
+      <input id="sSlipOK" type="text" placeholder="https://xxx.workers.dev" autocomplete="off">
+    </div>
+    <div class="btns">
+      <button class="btn-cancel" onclick="closeSettings()">ปิด</button>
+      <button class="btn-save" onclick="saveSlipOK()">บันทึก SlipOK</button>
+    </div>
+    </div><!-- /ownerOnlySettings -->
+  </div>
+</div>
+
+<!-- Assistant Popup (iframe) -->
+<div class="asst-modal" id="asstModal">
+  <div class="asst-box">
+    <button class="asst-close" onclick="closeAssistant()" aria-label="ปิด">✕</button>
+    <iframe id="asstFrame" title="ผู้ช่วย HURT SHOP" loading="lazy"></iframe>
+  </div>
+</div>
+
+<!-- PDF statement (print-only) -->
+<div id="pdfDoc"></div>
+
+<!-- Report Modal -->
+<div class="modal" id="report">
+  <div class="sheet" id="reportSheet">
+    <div id="reportBody"></div>
+    <div class="btns">
+      <button class="btn-cancel" onclick="closeReport()">ปิด</button>
+      <button class="btn-save" onclick="printReport()">🧾 บันทึก PDF</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ⚠️ ถอน Service Worker ค้างจากโปรเจกต์อื่นในโดเมนเดียวกัน (map/ลาล่า) ที่ดักจับไฟล์
+// แบบ Network-First จนคืน error ให้ Firebase ตอนเน็ตกระตุก → "โหลด Firebase ไม่สำเร็จ"
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  var controlled = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.getRegistrations()
+    .then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); })
+    .then(function () {
+      if (controlled && !sessionStorage.getItem('swCleared')) {
+        sessionStorage.setItem('swCleared', '1');
+        location.reload();   // ถอน SW เสร็จแล้ว โหลดสดอีกครั้งแบบไม่มี SW คั่น
+      }
+    })
+    .catch(function () {});
+})();
+// (ถอนแล้ว) เคยปิด indexedDB บน iOS — พิสูจน์ในแล็บแล้วว่าทำให้ SDK กู้ session ไม่ขึ้น (สาเหตุ "ไม่จำบัญชี")
+// ⚡ iOS: กัน Firebase auth หยุดรอโหลด apis.google.com (gapi iframe สำหรับ popup แบบเก่าที่เราไม่ใช้แล้ว)
+// ตอนเริ่มระบบบนมือถือ SDK จะ "await" การโหลดนี้ก่อนปล่อยผู้ใช้ — เน็ตที่เข้าเซิร์ฟเวอร์นี้ช้าจึงค้าง 27-96 วิ
+// ตัวปลอมนี้ตอบ ontimeout ทันที → SDK ข้ามขั้นนี้ (มี try/catch รองรับอยู่แล้ว) → เริ่มระบบไว
+(function () {
+  var ua = navigator.userAgent || '';
+  var ios = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && 'ontouchend' in document);
+  if (!ios) return;
+  window.gapi = { load: function (n, p) { try { if (p && p.ontimeout) p.ontimeout(); else if (typeof p === 'function') p(); } catch (e) {} } };
+})();
+</script>
+<script src="vendor/firebase/firebase-app-compat.js"></script>
+<script src="vendor/firebase/firebase-database-compat.js"></script>
+<script src="vendor/firebase/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+/* รับผลล็อกอินแบบ redirect (iOS): Google ส่ง access_token กลับมาใน #hash ของ URL
+   ต้องเก็บ+ล้างออกจาก URL ทันทีก่อนโค้ดอื่นทำงาน (ไม่ให้ token ติดอยู่ในประวัติเบราว์เซอร์) */
+window._oauthToken = '';
+window._oauthStateLost = false;
+window._oauthError = '';
+(function () {
+  const hasTok = location.hash.indexOf('access_token=') !== -1;
+  const hasErr = location.hash.indexOf('error=') !== -1;
+  if (!hasTok && !hasErr) return;
+  try {
+    const h = new URLSearchParams(location.hash.slice(1));
+    const tok = h.get('access_token') || '', st = h.get('state') || '', err = h.get('error') || '';
+    let expect = '';
+    try { expect = sessionStorage.getItem('oauthState') || ''; sessionStorage.removeItem('oauthState'); } catch (e) {}
+    history.replaceState(null, '', location.pathname + location.search);   // ล้าง hash (ทั้ง token และ error) ออกจาก URL/ประวัติเสมอ
+    if (tok && st && expect && st === expect) window._oauthToken = tok;   // state ไม่ตรง = ไม่รับ (กัน token แปลกปลอม)
+    else if (tok) window._oauthStateLost = true;   // มี token แต่รหัสยืนยันหาย — ต้องบอกผู้ใช้ ไม่ทิ้งเงียบ
+    else if (err) window._oauthError = err;   // ผู้ใช้ยกเลิก/Google ปฏิเสธ (เช่น access_denied) — แจ้งแล้วให้ลองใหม่
+  } catch (e) {}
+})();
+
+const APP_VER = 'v7.24-2';   // โชว์บนหน้า login — เช็คจากภาพหน้าจอได้ว่าเครื่องรันโค้ดรุ่นไหน (กันงงเรื่องแคช)
+const LKEY = 'bank_transfers_v1';      // local fallback store
+const CFGKEY = 'bank_fb_config';        // saved firebase config (JSON string)
+const ROOMKEY = 'bank_room';            // saved room code
+const SOKEY = 'bank_slipok_proxy';      // saved SlipOK proxy URL (Cloudflare Worker)
+
+// Real-time แบบฝังไว้ในตัว: ทุกเครื่องที่เปิดลิงก์จะ sync อัตโนมัติ ไม่ต้องตั้งค่า
+const BAKED_CONFIG = {
+  apiKey: "AIzaSyA68TcgHOPQb8FwiOZYD36gkBJNLl3juEg",
+  authDomain: "bank-48baf.firebaseapp.com",
+  databaseURL: "https://bank-48baf-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "bank-48baf",
+  storageBucket: "bank-48baf.firebasestorage.app",
+  messagingSenderId: "273049715377",
+  appId: "1:273049715377:web:9e8f042190a69b92d91890",
+  measurementId: "G-TW7M8QZ3KW"
+};
+const BAKED_ROOM = "main";   // ห้องกลางที่ทุกเครื่องใช้ร่วมกัน
+const BAKED_SLIPOK_PROXY = "https://rudybank.chitipat-kao.workers.dev"; // ฝัง SlipOK proxy ให้ทุกเครื่องตรวจสลิปได้เลย
+
+let data = [];          // array of records
+let rtOn = false;       // realtime active?
+let dbRef = null;       // firebase ref
+let app = null;
+let pendingData = [];   // คิวสลิปที่พนักงานส่งรอเจ้าของอนุมัติ (สลิปไม่มี QR เช่น K BIZ)
+let dateRange = 'all';  // all | today | 7d | month | m:YYYY-MM
+
+function localDateStr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function inRange(date){
+  if(dateRange==='all') return true;
+  const today=todayStr();
+  if(dateRange==='today') return date===today;
+  if(dateRange==='7d'){ const d=new Date(); d.setDate(d.getDate()-6); return date>=localDateStr(d) && date<=today; }
+  if(dateRange==='month') return date.slice(0,7)===today.slice(0,7);
+  if(dateRange.indexOf('m:')===0) return date.slice(0,7)===dateRange.slice(2);
+  return true;
+}
+function rangeLabel(){
+  if(dateRange==='today') return 'ยอดลูกค้า วันนี้';
+  if(dateRange==='7d') return 'ยอดลูกค้า 7 วันล่าสุด';
+  if(dateRange==='month') return 'ยอดลูกค้า เดือนนี้';
+  if(dateRange.indexOf('m:')===0) return 'ยอดลูกค้า '+monthLabel(dateRange.slice(2));
+  return 'ยอดลูกค้าทั้งหมด';
+}
+function setRange(r){ dateRange=r; render(); }
+
+/* ---------- helpers ---------- */
+function fmt(n) { return Number(n).toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
+function fmtShort(n) {
+  n = Number(n);
+  if (n >= 1e6) return (n/1e6).toFixed(n % 1e6 === 0 ? 0 : 1) + 'M ฿';
+  if (n >= 1e3) return (n/1e3).toFixed(n % 1e3 === 0 ? 0 : 1) + 'K ฿';
+  return fmt(n) + ' ฿';
+}
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function thaiDate(s) {
+  const [y,m,d] = s.split('-');
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return Number(d) + ' ' + months[Number(m)-1] + ' ' + (Number(y)+543).toString().slice(-2);
+}
+function monthLabel(ym) {
+  const [y,m] = ym.split('-');
+  const months = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  return months[Number(m)-1] + ' ' + (Number(y)+543);
+}
+
+/* ---------- normalize (กันวันที่/ธนาคารจากสลิปรูปแบบแปลกๆ) ---------- */
+const BANK_CODE = { '001':'ธปท.','002':'กรุงเทพ','004':'กสิกรไทย','006':'กรุงไทย','008':'JPMorgan','009':'OCBC',
+  '011':'ทหารไทยธนชาต','014':'ไทยพาณิชย์','017':'ซิตี้แบงก์','018':'ซูมิโตโม','020':'สแตนดาร์ดชาร์เตอร์ด',
+  '022':'CIMB','024':'UOB','025':'กรุงศรีอยุธยา','030':'ออมสิน','031':'HSBC','033':'ธอส.','034':'ธ.ก.ส.',
+  '039':'มิซูโฮ','045':'BNP','065':'ธนชาต','066':'อิสลาม','067':'ทิสโก้','069':'เกียรตินาคินภัทร',
+  '070':'ICBC','071':'ไทยเครดิต','073':'แลนด์แอนด์เฮ้าส์','098':'SME Bank' };
+function normBank(b){ b=(b||'').toString().trim(); const c=b.replace(/\D/g,''); if(/^\d{2,3}$/.test(c)) return BANK_CODE[c.padStart(3,'0')] || ('ธนาคาร '+c); return b; }
+function ymd(y,mo,da){ y=Number(y); if(y>2200) y-=543; return String(y).padStart(4,'0')+'-'+String(Number(mo)).padStart(2,'0')+'-'+String(Number(da)).padStart(2,'0'); }
+function normDate(s){
+  s=(s||'').toString().trim();
+  if(/^\d{13}$/.test(s)){ const d=new Date(Number(s)); if(!isNaN(d.getTime())) return localDateStr(d); }     // epoch ms (เช็คก่อน กัน YYYYMMDD จับผิด)
+  if(/^\d{10}$/.test(s)){ const d=new Date(Number(s)*1000); if(!isNaN(d.getTime())) return localDateStr(d); }// epoch s
+  let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if(m) return ymd(m[1],m[2],m[3]);   // YYYY-MM-DD
+  m=s.match(/^(\d{4})(\d{2})(\d{2})(?!\d)/);     if(m) return ymd(m[1],m[2],m[3]);     // YYYYMMDD(Txx)
+  m=s.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/); if(m) return ymd(m[3],m[2],m[1]); // DD/MM/YYYY
+  const d=new Date(s); if(!isNaN(d.getTime())) return localDateStr(d);
+  return todayStr();
+}
+function normalizeRec(r){ return (r && typeof r==='object') ? Object.assign({}, r, { date: normDate(r.date), bank: normBank(r.bank) }) : null; }
+
+/* ---------- data layer (local or realtime) ---------- */
+function loadLocal() {
+  try { data = (JSON.parse(localStorage.getItem(LKEY)) || []).map(normalizeRec).filter(Boolean); } catch (e) { data = []; }
+}
+function persistLocal() { localStorage.setItem(LKEY, JSON.stringify(data)); }
+
+function putRecord(rec) {
+  if (rtOn && dbRef) {
+    // มิเรอร์ลงเครื่อง + วาดทันที ก่อนเสมอ — กันรายการหาย/ไม่โผล่ ถ้า snapshot แรกยังไม่มา หรือปิดแท็บก่อน sync
+    const idx = data.findIndex(x => x.id === rec.id);
+    if (idx >= 0) data[idx] = rec; else data.push(rec);
+    persistLocal(); render();
+    dbRef.child(rec.id).set(rec).catch(err => {   // ถ้าเซิร์ฟเวอร์ปฏิเสธ (สิทธิ์/rule/token) — เตือน ไม่ให้รายการหายเงียบ
+      setSync('err', 'บันทึกขึ้นเซิร์ฟเวอร์ไม่สำเร็จ');
+      alert('⚠️ บันทึกขึ้นเซิร์ฟเวอร์ไม่สำเร็จ (สิทธิ์/เน็ต/เซสชัน)\nรายการอาจหายเมื่อรีเฟรช — ลองใหม่ หรือออกจากระบบแล้วล็อกอินใหม่\n\n' + (err && err.message ? err.message : ''));
+    });
+  } else {
+    const idx = data.findIndex(x => x.id === rec.id);
+    if (idx >= 0) data[idx] = rec; else data.push(rec);
+    persistLocal(); render();
+  }
+}
+function removeRecord(id) {
+  if (rtOn && dbRef) {
+    dbRef.child(id).remove().catch(err => {   // ลบไม่สำเร็จ (สิทธิ์/เน็ต) — เตือน ไม่ให้เข้าใจผิดว่าลบแล้ว
+      setSync('err', 'ลบไม่สำเร็จ');
+      alert('⚠️ ลบรายการไม่สำเร็จ (สิทธิ์/เน็ต/เซสชัน)\nรายการยังอยู่ — ลองใหม่อีกครั้ง\n\n' + (err && err.message ? err.message : ''));
+    });
+  } else {
+    data = data.filter(x => x.id !== id);
+    persistLocal(); render();
+  }
+}
+
+/* ---------- realtime / firebase ---------- */
+function setSync(state, text) {
+  const p = document.getElementById('syncPill');
+  if (!p) return;   // เอาแถบสถานะออกแล้ว
+  p.className = 'syncpill' + (state ? ' ' + state : '');
+  document.getElementById('syncText').textContent = text;
+}
+function parseConfig(raw) {
+  raw = raw.trim();
+  // pull out the {...} part if pasted with "const firebaseConfig = {...};"
+  const i = raw.indexOf('{'), j = raw.lastIndexOf('}');
+  if (i >= 0 && j > i) raw = raw.slice(i, j + 1);
+  // allow JS-style (unquoted keys, single quotes) -> via Function
+  try { return JSON.parse(raw); }
+  catch (e) {
+    try { return (new Function('return (' + raw + ')'))(); }
+    catch (e2) { return null; }
+  }
+}
+function connectRT(cfg, room) {
+  try {
+    if (!app) app = firebase.initializeApp(cfg);
+  } catch (e) {
+    // already initialized with different config: reload to apply fresh
+    setSync('err', 'ต้องรีโหลดหน้าเพื่อใช้ค่าใหม่');
+    setTimeout(() => location.reload(), 800);
+    return;
+  }
+  setSync('connecting', 'กำลังเชื่อมต่อ...');
+  try {
+    const db = firebase.database();
+    dbRef = db.ref('rooms/' + room + '/transfers');
+    rtOn = true;   // เขียนขึ้น Firebase ได้ทันที (SDK คิวให้จนเชื่อมต่อ) — กันรายการที่เพิ่มก่อน snapshot แรกหายจากการเขียนลงเครื่องแล้วถูกทับ
+
+    // connection state indicator
+    db.ref('.info/connected').on('value', snap => {
+      if (snap.val() === true) setSync('on', 'Real-time · ห้อง: ' + room);
+      else setSync('connecting', 'กำลังเชื่อมต่อ...');
+    });
+
+    dbRef.on('value', snap => {
+      const val = snap.val() || {};
+      data = Object.values(val).map(normalizeRec).filter(Boolean);
+      rtOn = true;
+      render();
+    }, err => {
+      setSync('err', 'เชื่อมต่อไม่ได้: ตรวจ config/สิทธิ์');
+      rtOn = false;
+    });
+
+    // คิวรออนุมัติ (สลิปไม่มี QR ที่พนักงานส่งมา) — ถ้ายังไม่ได้ตั้งกฎ pending จะเงียบ
+    db.ref('rooms/' + room + '/pending').on('value', snap => {
+      const val = snap.val() || {};
+      pendingData = Object.values(val).filter(x => x && typeof x === 'object' && x.id);
+      renderPending();
+    }, () => { pendingData = []; renderPending(); });
+  } catch (e) {
+    setSync('err', 'config ไม่ถูกต้อง');
+    rtOn = false;
+  }
+}
+/* ---------- settings modal ---------- */
+function openSettings() {
+  document.getElementById('settings').classList.add('show');
+  document.getElementById('sCfg').value = localStorage.getItem(CFGKEY) || '';
+  document.getElementById('sRoom').value = localStorage.getItem(ROOMKEY) || '';
+  document.getElementById('sSlipOK').value = localStorage.getItem(SOKEY) || '';
+}
+function closeSettings() { document.getElementById('settings').classList.remove('show'); homeTab(); }
+function saveSlipOK() {
+  let u = document.getElementById('sSlipOK').value.trim();
+  if (u && !/^https?:\/\//.test(u)) u = 'https://' + u;
+  if (u) localStorage.setItem(SOKEY, u); else localStorage.removeItem(SOKEY);
+  alert(u ? 'บันทึก SlipOK Proxy แล้ว — เวลาแนบสลิปจะตรวจกับ SlipOK (ฟรี)' : 'ลบ SlipOK Proxy แล้ว');
+  closeSettings();
+}
+function saveSettings() {
+  const raw = document.getElementById('sCfg').value.trim();
+  const room = document.getElementById('sRoom').value.trim();
+  if (!raw || !room) { alert('กรุณาวาง Firebase config และตั้งรหัสห้อง'); return; }
+  const cfg = parseConfig(raw);
+  if (!cfg || !cfg.apiKey) { alert('Firebase config ไม่ถูกต้อง ลองวางใหม่ทั้งก้อน'); return; }
+  if (!cfg.databaseURL) {
+    if (cfg.projectId) cfg.databaseURL = 'https://' + cfg.projectId + '-default-rtdb.firebaseio.com';
+    else { alert('ไม่พบ databaseURL — ตรวจว่าเปิด Realtime Database แล้ว'); return; }
+  }
+  localStorage.setItem(CFGKEY, JSON.stringify(cfg));
+  localStorage.setItem(ROOMKEY, room);
+  closeSettings();
+  if (app) { location.reload(); return; }   // re-init cleanly
+  connectRT(cfg, room);
+}
+function disconnectRT() {
+  localStorage.removeItem(CFGKEY);
+  localStorage.removeItem(ROOMKEY);
+  closeSettings();
+  location.reload();
+}
+
+/* ---------- แถบล่าง (tab bar) ---------- */
+function goHome(){ window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function setTab(el){
+  document.querySelectorAll('.modal.show, .asst-modal.show').forEach(m => m.classList.remove('show'));   // ปิดหน้าที่เปิดอยู่ก่อน (กันซ้อน)
+  document.querySelectorAll('.tabbar .tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+function homeTab(){ setTab(document.querySelector('.tabbar .tab')); }   // ไฮไลต์กลับหน้าแรกเมื่อปิดเมนู
+
+/* ---------- ripple ตอนแตะปุ่ม/เมนู ---------- */
+document.addEventListener('pointerdown', function(e){
+  const el = e.target.closest('.tab.center .tc, .btns button, .g-btn, .tools button, .seg-btn, .slipview');
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const size = Math.max(r.width, r.height);
+  const rip = document.createElement('span');
+  rip.className = 'rip';
+  rip.style.width = rip.style.height = size + 'px';
+  rip.style.left = (e.clientX - r.left - size / 2) + 'px';
+  rip.style.top = (e.clientY - r.top - size / 2) + 'px';
+  el.appendChild(rip);
+  setTimeout(function(){ rip.remove(); }, 560);
+}, true);
+
+/* ---------- ป๊อปอัพผู้ช่วย (iframe) ---------- */
+function openAssistant() {
+  const f = document.getElementById('asstFrame');
+  if (!f.src) {
+    f.onload = function(){ try { const b = f.contentDocument.querySelector('header a.back'); if (b) b.style.display = 'none'; } catch(e){} };
+    f.src = 'assistant.html';   // โหลดครั้งแรกที่เปิดเท่านั้น
+  }
+  document.getElementById('asstModal').classList.add('show');
+}
+function closeAssistant() { document.getElementById('asstModal').classList.remove('show'); homeTab(); }
+document.getElementById('asstModal').addEventListener('click', e => { if (e.target.id === 'asstModal') closeAssistant(); });
+
+/* ---------- add/edit modal ---------- */
+let modalIO = 'in';   // 'in' รับเข้า | 'out' จ่ายออก (เฉพาะเจ้าของ)
+let modalGen = 0;     // นับรุ่นการเปิด modal (กัน continuation ของ save เก่าไปกระทบ modal ใหม่)
+function setIO(m) {
+  const next = (m === 'out') ? 'out' : 'in';
+  const ioChanged = next !== modalIO;
+  modalIO = next;
+  document.querySelectorAll('#ioToggle .io-btn').forEach(b => b.classList.toggle('active', b.dataset.io === modalIO));
+  const editing = !!document.getElementById('editId').value;
+  // แก้ไขรายการเดิม → ล็อกประเภท (กันเผลอสลับเข้า/ออกของรายการที่ยืนยันแล้ว); เพิ่มใหม่ → ให้ CSS ตัดสิน (เจ้าของเห็น พนักงานถูกซ่อน)
+  document.getElementById('ioToggle').style.display = editing ? 'none' : '';
+  document.getElementById('modalTitle').textContent =
+    modalIO === 'out' ? (editing ? 'แก้ไขรายการโอนออก' : 'บันทึกโอนออก')
+                      : (editing ? 'แก้ไขรายการ' : 'เพิ่มยอดโอนเข้า');
+  const af = document.querySelector('#modal .autofill-note'); if (af) af.style.display = (modalIO === 'out') ? 'none' : '';
+  const sl = document.querySelector('#modal .slip-primary label'); if (sl) sl.textContent = (modalIO === 'out') ? '📎 แนบสลิปโอนออก (ถ้ามี)' : '📎 แนบสลิป แล้วกดบันทึก (ยืนยันกับธนาคารอัตโนมัติ)';
+  // สลับฝั่งจริงๆ (ไม่ใช่กดปุ่มเดิมซ้ำ) → ทิ้งผลอ่านเดิม + ล้างค่าที่ OCR เติม (ไม่แตะที่ผู้ใช้พิมพ์เอง) + อ่านสลิปที่แนบอยู่ใหม่
+  if (ioChanged) {
+    _ocrToken++;
+    Object.entries(_ocrFilledVals).forEach(([fid, val]) => {
+      const el = document.getElementById(fid);
+      if (el && el.value === val) el.value = (fid === 'fDate') ? todayStr() : '';
+    });
+    _ocrFilledVals = {};
+    if (currentSlipImg) {
+      const qr = document.getElementById('fSlipRef').value;
+      const tok = _ocrToken;   // ถ้ามีการปิดฟอร์ม/สลับซ้ำ/เปลี่ยนสลิป ก่อนรูปโหลดเสร็จ → ทิ้งงานนี้
+      const im = new Image();
+      im.onload = () => { if (tok === _ocrToken) slipRoute(im, qr); };
+      im.src = currentSlipImg;
+    }
+  }
+}
+function openModal(id) {
+  if (id && role === 'employee') return;   // พนักงานแก้ไขรายการเดิมไม่ได้
+  document.getElementById('modal').classList.add('show');
+  modalGen++;   // รุ่นของ modal — งาน save ที่ await ค้างจากรอบก่อนต้องไม่มาปิด/แก้ modal ที่เพิ่งเปิดใหม่
+  const _sb = document.getElementById('saveBtn'); if (_sb) { _sb.disabled = false; _sb.textContent = 'บันทึก'; }   // คืนปุ่มเสมอ (กันค้าง "กำลังส่ง..." จากรอบก่อน)
+  // เปิดฟอร์มทุกครั้ง = ยกเลิกงานอ่านสลิปที่ค้างจากรอบก่อนเสมอ (กันผลอ่านเก่ามาเติมฟอร์มใหม่)
+  _ocrToken++;
+  // ล้างสลิปเก่าก่อนเรียก setIO (setIO จะประเมินสลิปที่แนบอยู่ใหม่ — ต้องไม่เห็นของค้างจากรอบก่อน)
+  currentSlipImg = '';
+  currentSlipTxn = '';
+  _ocrFilledVals = {};
+  document.getElementById('fSlip').value = '';
+  if (id) {
+    const it = data.find(x => x.id === id);
+    if (!it) { closeModal(); return; }   // รายการถูกลบจากอีกเครื่องระหว่างนี้
+    document.getElementById('modalTitle').textContent = 'แก้ไขรายการ';
+    document.getElementById('editId').value = it.id;
+    document.getElementById('fAmount').value = it.amount;
+    document.getElementById('fName').value = it.name || '';
+    document.getElementById('fBank').value = it.bank || '';
+    document.getElementById('fDate').value = it.date || todayStr();
+    document.getElementById('fNote').value = it.note || '';
+    document.getElementById('fSlipRef').value = it.slipRef || '';
+    document.getElementById('fSlipHash').value = it.slipHash || '';
+    document.getElementById('fSlipVerified').value = it.slipVerified ? '1' : '';
+    setSlipStatus(it.slipVerified ? 'ok' : (it.slipRef || it.slipHash ? 'ok' : ''),
+      it.slipVerified ? '🛡️ ยืนยันกับธนาคารแล้ว' : (it.slipRef || it.slipHash ? '📎 มีสลิปแนบอยู่แล้ว' : ''));
+    setIO(it.type === 'out' ? 'out' : 'in');
+  } else {
+    document.getElementById('modalTitle').textContent = 'เพิ่มยอดโอนเข้า';
+    document.getElementById('editId').value = '';
+    document.getElementById('fAmount').value = '';
+    document.getElementById('fName').value = '';
+    document.getElementById('fBank').value = '';
+    document.getElementById('fDate').value = todayStr();
+    document.getElementById('fNote').value = '';
+    document.getElementById('fSlipRef').value = '';
+    document.getElementById('fSlipHash').value = '';
+    document.getElementById('fSlipVerified').value = '';
+    setSlipStatus('', '');
+    setIO('in');
+    setTimeout(() => document.getElementById('fAmount').focus(), 200);
+  }
+}
+function closeModal() { _ocrToken++; modalGen++; document.getElementById('modal').classList.remove('show'); homeTab(); }
+document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+document.getElementById('settings').addEventListener('click', e => { if (e.target.id === 'settings') closeSettings(); });
+
+async function save() {
+  const editId = document.getElementById('editId').value;
+  const qr = document.getElementById('fSlipRef').value;
+  const note = document.getElementById('fNote').value.trim();
+
+  // แก้ไขรายการเดิม (เจ้าของเท่านั้น) → เขียนตรง
+  if (editId) {
+    const amount = parseFloat(document.getElementById('fAmount').value);
+    if (!amount || amount <= 0) { alert('กรุณาใส่จำนวนเงินให้ถูกต้อง'); return; }
+    const old = data.find(x => x.id === editId);
+    if (!old) { alert('รายการนี้ถูกลบไปแล้ว (อาจถูกลบจากอีกเครื่อง)\nปิดหน้าต่างแล้วเพิ่มใหม่ถ้าต้องการ'); closeModal(); return; }   // กันแก้ไขแล้วปลุกรายการที่ถูกลบให้ฟื้นเงียบๆ
+    const amtChanged = Number(old.amount) !== amount;
+    putRecord(Object.assign({}, old, {
+      id: editId, amount,
+      type: modalIO === 'out' ? 'out' : 'in',
+      name: document.getElementById('fName').value.trim() || 'ไม่ระบุชื่อ',
+      bank: document.getElementById('fBank').value,
+      date: document.getElementById('fDate').value || todayStr(), note,
+      slipRef: qr || '', slipHash: document.getElementById('fSlipHash').value || '',
+      // แก้ยอด = ยกเลิกสถานะ "ยืนยันธนาคาร" (ยอดไม่ตรงสลิปแล้ว) + ทำเครื่องหมายว่าถูกแก้
+      slipVerified: amtChanged ? false : (document.getElementById('fSlipVerified').value === '1'),
+      // รายการที่ยืนยันผ่าน Worker มีรูปอยู่ที่ slips/{id} แต่ hasImg=false — คงร่องรอยว่ามีรูปไว้ ปุ่ม "ดูสลิป" จะได้ไม่หายหลังแก้ยอด
+      hasImg: currentSlipImg ? true : (!!old.hasImg || !!old.slipVerified),
+      edited: amtChanged || !!old.edited
+    }));
+    if (currentSlipImg) putSlipImage(editId, currentSlipImg);
+    closeModal(); return;
+  }
+
+  // รายการใหม่แบบ "โอนออก" (เจ้าของเท่านั้น) → เขียนตรง type:'out'
+  if (modalIO === 'out') { saveOutgoing(); return; }
+
+  // รายการใหม่ + มีสลิป → ยืนยัน+บันทึกผ่าน Worker (ยอดมาจากธนาคาร กันเงินปลอม)
+  if (qr) {
+    // กันสลิปเดิมถูกเครดิตซ้ำข้ามเส้นทาง (เคยเข้าคิว/บันทึกด้วย hash หรือเลขที่รายการเดียวกัน)
+    const _sh = document.getElementById('fSlipHash').value || '';
+    if (slipAlreadyRecorded(_sh, currentSlipTxn)) {
+      if (!confirm('⚠️ สลิปนี้เคยถูกบันทึกแล้ว\nบันทึกต่ออาจกลายเป็นเงินเข้าซ้ำ — ยืนยันหรือไม่?')) return;
+    }
+    const btn = document.getElementById('saveBtn');
+    const imgAtSave = currentSlipImg;   // จับรูป ณ ตอนกดบันทึก — กันแนบสลิปใบใหม่ระหว่างรอแล้วรูปผิดใบไปติดรายการ (หรือถูกล้างเป็น '')
+    const genAtSave = modalGen;          // จับรุ่น modal — ถ้าเปิด/ปิด modal ระหว่างรอ อย่าไปแตะ modal ใหม่
+    btn.disabled = true; btn.textContent = 'กำลังยืนยัน...';
+    setSlipStatus('busy', '🛡️ กำลังยืนยันกับธนาคารและบันทึก...');
+    const r = await workerSave(qr, note);
+    const sameModal = (genAtSave === modalGen);   // modal เดิมยังเปิดอยู่ไหม
+    if (sameModal) { btn.disabled = false; btn.textContent = 'บันทึก'; }
+    if (r.ok) {
+      if (imgAtSave && r.record && r.record.id) putSlipImage(r.record.id, imgAtSave);   // เก็บรูปสลิป (ใช้รูปที่จับไว้ ไม่ใช่ global ที่อาจถูกทับ/ล้าง)
+      if (sameModal) { setSlipStatus('ok', '✅ บันทึกแล้ว: ' + esc2(r.record.name) + ' ยอด ' + fmt(r.record.amount) + ' ฿'); setTimeout(() => { if (genAtSave === modalGen) closeModal(); }, 800); }
+      return;
+    }
+    if (!sameModal) return;   // modal เปลี่ยนไปแล้ว อย่าเด้ง alert/สถานะทับฟอร์มใหม่
+    if (r.alreadyExists) { alert('สลิปนี้บันทึกไว้แล้ว: ยอด ' + fmt(r.record.amount) + ' ฿' + (r.record.name ? ' (' + r.record.name + ')' : '')); closeModal(); return; }
+    if (r.error === 'unauthorized') { alert('เซสชันหมดอายุ — กรุณาออกจากระบบแล้วล็อกอินใหม่'); return; }
+    if (r.notFound) {
+      if (role === 'owner') {
+        if (confirm('⚠️ ตรวจไม่พบสลิปนี้ในระบบธนาคาร (อาจสลิปเก่า/ปลอม)\n\nบันทึกแบบกรอกเอง (ข้ามการตรวจ) ไหม? — ต้องใส่ยอดเงินเอง')) ownerManualSave();
+        else setSlipStatus('warn', 'ยกเลิก — สลิปไม่ผ่านการตรวจ');
+        return;
+      }
+      alert('❌ สลิปไม่ผ่านการตรวจกับธนาคาร — บันทึกไม่ได้\n(อาจเป็นสลิปปลอม หรือสลิปเก่าเกินกำหนด)');
+      setSlipStatus('dup', '❌ สลิปไม่ผ่านการตรวจ — บันทึกไม่ได้'); return;
+    }
+    // SlipOK ตรวจให้ไม่ได้ (แพ็กเกจหมดอายุ/โควตาเต็ม/บริการล่ม/เน็ต) — ไม่ได้แปลว่าสลิปปลอม → ไม่ควรบล็อกทั้งร้าน
+    const svc = 'ระบบตรวจสลิปอัตโนมัติใช้ไม่ได้ชั่วคราว\n(' + (r.error || 'ไม่ทราบสาเหตุ') + ')';
+    if (role === 'owner') {
+      if (confirm('⚠️ ' + svc + '\n\nบันทึกแบบกรอกเอง (ไม่ผ่านการตรวจธนาคาร) ต่อไหม? — ต้องใส่ยอดเงินเอง')) ownerManualSave();
+      else setSlipStatus('warn', 'ระบบตรวจสลิปใช้ไม่ได้ชั่วคราว — ลองใหม่ภายหลัง หรือกรอกเอง');
+    } else {
+      if (confirm('⚠️ ' + svc + '\n\nส่งเข้าคิวให้เจ้าของอนุมัติแทนไหม?')) submitPending();
+      else setSlipStatus('warn', 'ระบบตรวจสลิปใช้ไม่ได้ชั่วคราว — ลองใหม่ภายหลัง');
+    }
+    return;
+  }
+
+  // รายการใหม่ + สลิปไม่มี QR (เช่น K BIZ) → เจ้าของกรอกเองตรง / พนักงานส่งเข้าคิวรออนุมัติ
+  if (role === 'owner') { ownerManualSave(); return; }
+  submitPending();
+}
+// บันทึกผ่าน Worker: ส่ง idToken + QR → Worker ตรวจ SlipOK แล้วเขียนเอง (ยอดจากธนาคาร)
+async function workerSave(qr, note) {
+  const proxy = localStorage.getItem(SOKEY) || BAKED_SLIPOK_PROXY;
+  try {
+    const user = firebase.auth().currentUser;
+    if (!user) return { ok: false, error: 'unauthorized' };
+    const idToken = await user.getIdToken();
+    const slipHash = document.getElementById('fSlipHash').value || '';   // ส่ง hash ไปให้ worker จด (กันสลิปเดียวถูกเครดิตซ้ำข้ามเส้นทาง QR/คิว — worker เวอร์ชันใหม่เก็บ slipHash ในรายการ)
+    const resp = await fetch(proxy, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken, data: qr, note, slipHash }) });
+    return await resp.json().catch(() => ({ ok: false, error: 'bad response' }));
+  } catch (e) { return { ok: false, error: 'เชื่อมต่อไม่ได้' }; }
+}
+// เจ้าของกรอกเอง (ข้ามการตรวจ) → เขียนตรง
+function ownerManualSave() {
+  const amount = parseFloat(document.getElementById('fAmount').value);
+  if (!amount || amount <= 0) { alert('กรอกแบบเอง: กรุณาใส่จำนวนเงินก่อน'); document.getElementById('fAmount').focus(); return; }
+  // กันสลิปเดิมถูกบันทึกซ้ำ (เทียบทั้งไฟล์แฮช และเลขที่รายการธนาคาร — เลขที่รายการกันได้แม้ถ่ายรูปใหม่)
+  const _sh = document.getElementById('fSlipHash').value || '';
+  if (slipAlreadyRecorded(_sh, currentSlipTxn)) {
+    if (!confirm('⚠️ สลิปนี้เคยถูกบันทึกแล้ว' + (currentSlipTxn ? '\n(เลขที่รายการ ' + esc2(currentSlipTxn) + ')' : '') + '\nบันทึกต่ออาจกลายเป็นเงินเข้าซ้ำ — ยืนยันหรือไม่?')) return;
+  }
+  const id = 't' + Date.now() + Math.floor(Math.random()*1000);
+  putRecord({
+    id, amount,
+    name: document.getElementById('fName').value.trim() || 'ไม่ระบุชื่อ',
+    bank: document.getElementById('fBank').value,
+    date: document.getElementById('fDate').value || todayStr(),
+    note: document.getElementById('fNote').value.trim(),
+    slipRef: document.getElementById('fSlipRef').value || '',
+    slipHash: document.getElementById('fSlipHash').value || '', slipTxn: currentSlipTxn || '',
+    slipVerified: false, manual: true, hasImg: !!currentSlipImg
+  });
+  if (currentSlipImg) putSlipImage(id, currentSlipImg);
+  closeModal();
+}
+// เจ้าของบันทึกโอนออก (หักจากยอดคงเหลือ) → เขียนตรง type:'out'
+function saveOutgoing() {
+  if (role !== 'owner') { alert('เฉพาะเจ้าของบันทึกโอนออกได้'); return; }
+  const amount = parseFloat(document.getElementById('fAmount').value);
+  if (!amount || amount <= 0) { alert('ใส่จำนวนเงินที่โอนออกก่อน'); document.getElementById('fAmount').focus(); return; }
+  const _sh = document.getElementById('fSlipHash').value || '';   // กันแนบสลิปโอนออกไฟล์เดิม/ธุรกรรมเดิมซ้ำ
+  if (slipAlreadyRecorded(_sh, currentSlipTxn)) {
+    if (!confirm('⚠️ สลิปนี้เคยถูกบันทึกแล้ว' + (currentSlipTxn ? '\n(เลขที่รายการ ' + esc2(currentSlipTxn) + ')' : '') + '\nบันทึกต่ออาจกลายเป็นรายการซ้ำ — ยืนยันหรือไม่?')) return;
+  }
+  const id = 'o' + Date.now() + Math.floor(Math.random() * 1000);
+  putRecord({
+    id, amount, type: 'out',
+    name: document.getElementById('fName').value.trim() || 'จ่ายออก',
+    bank: document.getElementById('fBank').value || '',
+    date: document.getElementById('fDate').value || todayStr(),
+    note: document.getElementById('fNote').value.trim(),
+    slipRef: '', slipHash: document.getElementById('fSlipHash').value || '', slipTxn: currentSlipTxn || '',
+    slipVerified: false, manual: true, hasImg: !!currentSlipImg
+  });
+  if (currentSlipImg) putSlipImage(id, currentSlipImg);
+  closeModal();
+}
+
+/* ---------- slip check (อ่าน QR + กันสลิปซ้ำ) ทำงานในเครื่อง ไม่ส่งภาพออกไปไหน ---------- */
+function setSlipStatus(cls, html) {
+  const el = document.getElementById('slipStatus');
+  el.className = 'slipstatus' + (cls ? ' show ' + cls : '');
+  el.innerHTML = html;
+}
+async function sha256(buf) {
+  const h = await crypto.subtle.digest('SHA-256', buf);
+  return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2,'0')).join('');
+}
+function readQRfromImage(img) {
+  const max = 1000, scale = Math.min(1, max / Math.max(img.width, img.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, 0, 0, c.width, c.height);
+  const d = ctx.getImageData(0, 0, c.width, c.height);
+  try { const r = (typeof jsQR === 'function') ? jsQR(d.data, c.width, c.height) : null; return r ? r.data : ''; }
+  catch (e) { return ''; }
+}
+
+/* ---------- อ่านสลิปไม่มี QR ด้วย OCR ในเครื่อง (Tesseract self-host — ฟรี ไม่ส่งรูปออกนอกเครื่อง) ---------- */
+let _ocrScript = null, _ocrToken = 0;
+let _ocrFilledVals = {};   // {fieldId: ค่าที่ OCR เติม} — ไว้ล้างตอนสลับฝั่งเข้า/ออก โดยไม่แตะค่าที่ผู้ใช้พิมพ์เอง
+function loadTesseract() {
+  if (window.Tesseract) return Promise.resolve();
+  if (_ocrScript) return _ocrScript;
+  _ocrScript = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'vendor/tesseract/tesseract.min.js';
+    s.onload = res;
+    s.onerror = () => { _ocrScript = null; rej(new Error('load fail')); };
+    document.head.appendChild(s);
+  });
+  return _ocrScript;
+}
+// เครื่องเก่าบางรุ่นไม่รองรับ wasm SIMD → เลือก core ให้ตรงรุ่น
+const _wasmSimd = (() => { try { return WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,0,0,1,5,1,96,0,1,123,3,2,1,0,10,10,1,8,0,65,0,253,15,253,98,11])); } catch (e) { return false; } })();
+async function ocrSlipText(img) {
+  await loadTesseract();
+  const worker = await Tesseract.createWorker('tha', 1, {
+    workerPath: 'vendor/tesseract/worker.min.js',
+    corePath: 'vendor/tesseract/tesseract-core-' + (_wasmSimd ? 'simd-' : '') + 'lstm.wasm.js',
+    langPath: 'vendor/tesseract/',
+    gzip: true,
+  });
+  try {
+    const scale = Math.min(2, 2000 / Math.max(img.width, img.height));   // ขยายช่วยตัวหนังสือเล็ก
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const r = await worker.recognize(c);
+    return (r && r.data && r.data.text) || '';
+  } finally { try { worker.terminate(); } catch (e) {} }
+}
+// แยก ยอด/ธนาคาร/ชื่อ/วันที่ จากข้อความในสลิป (เผื่อ OCR อ่านเพี้ยนเล็กน้อย)
+function parseSlipInfo(text) {
+  const out = {};
+  const lines = text.split('\n').map(s => s.trim()).filter(Boolean);
+  const thCount = s => (s.match(/[ก-๙]/g) || []).length;
+  const numRe = /(\d[\d,]*\.\d{2})/;
+  // จำนวนเงิน — สระอำอาจถูกอ่านเป็น ํ+า แยกกัน
+  const li = lines.findIndex(l => /จ[ำํ]?า?นวนเงิน/.test(l));
+  if (li >= 0) {
+    for (let i = li; i < Math.min(li + 3, lines.length); i++) {
+      const m = lines[i].match(numRe);
+      if (m) { out.amount = parseFloat(m[1].replace(/,/g, '')); break; }
+    }
+  }
+  if (!out.amount) {   // สำรอง: เลข x.xx ที่มีคำว่า บาท และไม่ใช่ค่าธรรมเนียม/ยอดคงเหลือ (กันหยิบยอดคงเหลือในสลิปมาเป็นจำนวนเงิน)
+    const cand = lines.filter(l => /บาท/.test(l) && !/ธรรมเนียม|คงเหลือ|ยอดเงินคงเหลือ|balance/i.test(l))
+      .map(l => (l.match(numRe) || [])[1]).filter(Boolean)
+      .map(s => parseFloat(s.replace(/,/g, ''))).filter(n => n > 0);
+    if (cand.length) out.amount = Math.max(...cand);
+  }
+  if (out.amount && !(out.amount > 0 && out.amount < 100000000)) delete out.amount;
+  // ธนาคาร: ต้นทาง = ก่อนคำว่า "ไปยัง", ปลายทาง = หลัง
+  const cut = text.indexOf('ไปยัง');
+  const head = cut > 0 ? text.slice(0, cut) : text;
+  const tail = cut > 0 ? text.slice(cut) : '';
+  const BANKS = [
+    [/กสิกร|kbank|k\s?biz|k\+/i, 'กสิกรไทย'], [/ไทยพาณิชย์|scb/i, 'ไทยพาณิชย์'],
+    [/กรุงเทพ/i, 'กรุงเทพ'], [/กรุงไทย|krungthai/i, 'กรุงไทย'],
+    [/กรุงศรี|krungsri/i, 'กรุงศรีอยุธยา'], [/ทหารไทย|ธนชาต|ttb/i, 'ทหารไทยธนชาต'],
+    [/ออมสิน|gsb/i, 'ออมสิน'], [/พร้อมเพย์|promptpay/i, 'พร้อมเพย์'],
+    [/true\s?money|ทรูมันนี่/i, 'TrueMoney'],
+  ];
+  for (const [re, name] of BANKS) { if (re.test(head)) { out.bankFrom = name; break; } }
+  for (const [re, name] of BANKS) { if (tail && re.test(tail)) { out.bankTo = name; break; } }
+  // ชื่อ: บรรทัดไทยยาวๆ แรกหลัง "จาก" (ผู้โอน) / หลัง "ไปยัง" (ผู้รับ)
+  const pickName = startIdx => {
+    for (let i = startIdx + 1; i < Math.min(startIdx + 5, lines.length); i++) {
+      if (/ธนาคาร|ไปยัง|จ[ำํ]?า?นวนเงิน/.test(lines[i])) break;
+      if (thCount(lines[i]) >= 4 || /^(นาย|นาง|น\.ส\.|หจก|บจก|บมจ)/.test(lines[i])) return lines[i];
+    }
+    return '';
+  };
+  const fi = lines.findIndex(l => /^[จอ]าก\b|^[จอ]าก$/.test(l));
+  if (fi >= 0) out.nameFrom = pickName(fi);
+  const ti = lines.findIndex(l => /ไปยัง/.test(l));
+  if (ti >= 0) out.nameTo = pickName(ti);
+  // วันที่ไทยย่อ เช่น "21 ก.ค. 69" (พ.ศ. 2 หรือ 4 หลัก)
+  const dm = text.match(/(\d{1,2})\s*(มี\.?\s?ค|มิ\.?\s?ย|เม\.?\s?ย|ม\.?\s?ค|ก\.?\s?พ|พ\.?\s?ค|ก\.?\s?ค|ส\.?\s?ค|ก\.?\s?ย|ต\.?\s?ค|พ\.?\s?ย|ธ\.?\s?ค)\.?\s*(\d{2,4})/);
+  if (dm) {
+    const MON = { 'มค':1,'กพ':2,'มีค':3,'เมย':4,'พค':5,'มิย':6,'กค':7,'สค':8,'กย':9,'ตค':10,'พย':11,'ธค':12 };
+    const mon = MON[dm[2].replace(/[.\s]/g, '')];
+    const day = parseInt(dm[1], 10);
+    let y = parseInt(dm[3], 10);
+    if (y < 100) y += 2500;
+    if (y > 2400) y -= 543;
+    if (mon && day >= 1 && day <= 31 && y >= 2020 && y <= 2100)
+      out.date = y + '-' + String(mon).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+  }
+  // เลขที่รายการ/รหัสอ้างอิงของธนาคาร — เฉพาะของธุรกรรมจริงแต่ละครั้ง เหมือนเดิมแม้ถ่ายรูปสลิปใหม่ (กุญแจกันซ้ำที่ดีกว่าไฟล์แฮช)
+  const clean = t => (t || '').replace(/[^A-Za-z0-9]/g, '');
+  const ki = lines.findIndex(l => /เลข.{0,2}ท.{0,2}รายการ|รห[ัสี].{0,2}ส?อ้?างอิง|อ้างอิง|reference|transaction\s*(id|no)/i.test(l));
+  if (ki >= 0) {   // มองบรรทัดที่มีคีย์เวิร์ด + บรรทัดถัดไป
+    for (let i = ki; i < Math.min(ki + 2, lines.length); i++) {
+      const m = clean(lines[i]).match(/[A-Z0-9]{12,}/i);
+      if (m) { out.txnRef = m[0].toUpperCase(); break; }
+    }
+  }
+  if (!out.txnRef) {   // สำรอง: บรรทัดที่เป็นโทเคนยาว (≥14) ตัวอักษร/เลขล้วน และเป็นตัวเลขเยอะ (เลขอ้างอิงมักหน้าตาแบบนี้)
+    for (const l of lines) {
+      const c = clean(l);
+      if (c.length >= 14 && /^[A-Z0-9]+$/i.test(c) && (c.match(/\d/g) || []).length >= 10) { out.txnRef = c.toUpperCase(); break; }
+    }
+  }
+  return out;
+}
+// อ่านเสร็จแล้วเติมเฉพาะช่องที่ยังว่าง — เป็นแค่ตัวช่วยกรอก ผู้ใช้ต้องตรวจเอง (ไม่ใช่การยืนยันธนาคาร)
+async function ocrAutofill(img, baseMsg) {
+  const token = ++_ocrToken;
+  try {
+    const text = await ocrSlipText(img);
+    if (token !== _ocrToken) return;   // ผู้ใช้เปลี่ยนสลิปไปแล้ว
+    const info = parseSlipInfo(text);
+    currentSlipTxn = info.txnRef || '';   // เก็บเลขที่รายการไว้กันซ้ำตอนบันทึก
+    const isOutForm = (typeof modalIO !== 'undefined' && modalIO === 'out');
+    const name = isOutForm ? info.nameTo : info.nameFrom;     // เข้า=ผู้โอน, ออก=ผู้รับ
+    const bank = isOutForm ? (info.bankTo || info.bankFrom) : info.bankFrom;
+    const filled = [];
+    const fA = document.getElementById('fAmount');
+    if (info.amount && !fA.value) { fA.value = info.amount; _ocrFilledVals.fAmount = fA.value; filled.push('ยอด ' + fmt(info.amount)); }
+    const fN = document.getElementById('fName');
+    if (name && !fN.value.trim()) { fN.value = name; _ocrFilledVals.fName = fN.value; filled.push('ชื่อ'); }
+    const fB = document.getElementById('fBank');
+    if (bank && !fB.value && [...fB.options].some(o => o.value === bank)) { fB.value = bank; _ocrFilledVals.fBank = fB.value; filled.push('ธนาคาร' + bank); }
+    const fD = document.getElementById('fDate');
+    if (info.date && fD.value === todayStr()) { fD.value = info.date; _ocrFilledVals.fDate = fD.value; filled.push('วันที่'); }
+    if (filled.length)
+      setSlipStatus('warn', baseMsg + '<br>🔍 อ่านจากสลิปให้แล้ว: <b>' + esc2(filled.join(' · ')) + '</b> — ตรวจให้ตรงกับสลิปก่อนกดบันทึก');
+    else
+      setSlipStatus('warn', baseMsg + '<br>🔍 อ่านตัวหนังสือในสลิปไม่ออก — กรอกเองได้เลย');
+  } catch (e) {
+    if (token === _ocrToken) setSlipStatus('warn', baseMsg);   // อ่านไม่ได้ก็เงียบๆ กลับข้อความเดิม
+  }
+}
+/* ---------- เก็บรูปสลิป (บีบอัด + โหนดแยก slips) ---------- */
+let currentSlipImg = '';   // dataURL ของสลิปที่กำลังจะบันทึก
+let currentSlipTxn = '';   // เลขที่รายการธนาคารที่ OCR อ่านได้ (กุญแจกันซ้ำข้ามการถ่ายรูปใหม่)
+// สลิปนี้ (ไฟล์แฮช หรือ เลขที่รายการธนาคาร) เคยถูกบันทึกเป็นรายการแล้วหรือยัง — กันเครดิตซ้ำทุกเส้นทาง
+function slipAlreadyRecorded(hash, txn) {
+  const h = hash || '', t = (txn || '').toUpperCase();
+  return data.some(x => x && (
+    (h && x.slipHash === h) ||
+    (t && ((x.slipTxn && x.slipTxn.toUpperCase() === t) || (x.slipRef && x.slipRef.toUpperCase() === t)))
+  ));
+}
+function compressToDataURL(img) {
+  const max = 1200, scale = Math.min(1, max / Math.max(img.width, img.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  let q = 0.7, url = c.toDataURL('image/jpeg', q);
+  while (url.length > 180000 && q > 0.35) { q -= 0.12; url = c.toDataURL('image/jpeg', q); }
+  return url;
+}
+function slipsRef() {
+  if (rtOn && dbRef && dbRef.parent) return dbRef.parent.child('slips');
+  try { return firebase.database().ref('rooms/' + BAKED_ROOM + '/slips'); } catch (e) { return null; }
+}
+function putSlipImage(id, img) {
+  if (!img) return;
+  const ref = slipsRef();
+  if (ref) { try { ref.child(id).set(img).catch(() => {}); } catch (e) {} }
+}
+
+/* ---------- คิวรออนุมัติ (สลิปไม่มี QR เช่น K BIZ) ---------- */
+function pendingRef() {
+  if (rtOn && dbRef && dbRef.parent) return dbRef.parent.child('pending');
+  try { return firebase.database().ref('rooms/' + BAKED_ROOM + '/pending'); } catch (e) { return null; }
+}
+// พนักงานส่งสลิป (ที่ตรวจ QR อัตโนมัติไม่ได้) + ยอดที่อ้าง เข้าคิวให้เจ้าของอนุมัติ
+function submitPending() {
+  if (!currentSlipImg) { alert('⚠️ ต้องแนบรูปสลิปก่อนส่ง'); return; }
+  const amount = parseFloat(document.getElementById('fAmount').value);
+  if (!amount || amount <= 0) { alert('ใส่จำนวนเงินตามสลิปก่อนส่ง'); document.getElementById('fAmount').focus(); return; }
+  const pref = pendingRef();
+  if (!pref) { alert('ส่งไม่สำเร็จ (ยังไม่ได้เชื่อมต่อระบบ)'); return; }
+  // id ผูกกับลายนิ้วมือสลิป (slipHash) — สลิปใบเดียวกันส่งซ้ำ = คิวเดียวกัน ไม่เกิดรายการรออนุมัติซ้ำ
+  const _h = document.getElementById('fSlipHash').value || '';
+  // กันส่งสลิปที่ "ถูกบันทึกเป็นรายการไปแล้ว" เข้าคิวซ้ำ (เทียบไฟล์แฮช และเลขที่รายการธนาคาร)
+  if (slipAlreadyRecorded(_h, currentSlipTxn)) {
+    alert('⚠️ สลิปนี้ถูกบันทึกเข้าระบบไปแล้ว\nไม่ต้องส่งซ้ำนะครับ (ถ้าไม่แน่ใจ แจ้งเจ้าของตรวจสอบ)');
+    return;
+  }
+  const id = _h ? ('p' + _h.slice(0, 40)) : ('p' + Date.now() + Math.floor(Math.random() * 1000));
+  const _strip = s => (s || '').replace(/[⟦⟧]/g, '');   // กันฝังโทเคน ⟦slip:...⟧ ปลอมผ่าน note/name (พนักงานคุมได้)
+  const rec = {
+    id, amount,
+    name: _strip(document.getElementById('fName').value.trim()) || 'ไม่ระบุชื่อ',
+    bank: document.getElementById('fBank').value || '',
+    date: document.getElementById('fDate').value || todayStr(),
+    note: _strip(document.getElementById('fNote').value.trim()),
+    slipHash: document.getElementById('fSlipHash').value || '', slipTxn: currentSlipTxn || '',
+    submittedBy: (currentUser && currentUser.email) || '',
+    submittedAt: Date.now(),
+    hasImg: true
+  };
+  const btn = document.getElementById('saveBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'กำลังส่ง...'; }
+  putSlipImage(id, currentSlipImg);   // เก็บรูปที่ slips/{id} (พนักงานสร้างได้)
+  pref.child(id).set(rec)
+    .then(() => { setSlipStatus('ok', '✅ ส่งเข้าคิวรอเจ้าของอนุมัติแล้ว'); setTimeout(closeModal, 900); })
+    .catch(e => {
+      if (btn) { btn.disabled = false; btn.textContent = 'บันทึก'; }
+      const sr = slipsRef(); if (sr) { try { sr.child(id).remove().catch(() => {}); } catch (_) {} }   // ลบรูปที่ค้าง (ส่งคิวไม่สำเร็จ)
+      alert('ส่งไม่สำเร็จ — เจ้าของยังไม่ได้เปิดสิทธิ์คิวรออนุมัติ (Firebase rules)\n\n' + (e && e.message ? e.message : ''));
+    });
+}
+// เจ้าของอนุมัติ: ยืนยันยอดจริง (ดูจากสลิป) แล้วเขียนเป็นรายการจริง
+function approvePending(id) {
+  if (role !== 'owner') { alert('เฉพาะเจ้าของอนุมัติได้'); return; }
+  const it = (pendingData || []).find(x => String(x.id) === String(id));
+  if (!it) { alert('ไม่พบรายการในคิว'); return; }
+  // กันสลิปเดียวถูกเครดิตซ้ำ: มีรายการที่บันทึกแล้วใช้ hash หรือเลขที่รายการเดียวกัน (เส้นทางไหนก็ตาม) เตือนก่อน
+  if (slipAlreadyRecorded(it.slipHash, it.slipTxn)) {
+    if (!confirm('⚠️ สลิปนี้เคยถูกบันทึกเป็นรายการแล้ว' + (it.slipTxn ? '\n(เลขที่รายการ ' + esc2(it.slipTxn) + ')' : '') + '\nอนุมัติต่อจะกลายเป็นบันทึกซ้ำ — ยืนยันจะอนุมัติหรือไม่?')) return;
+  }
+  // ไม่เติมยอดให้ล่วงหน้า — บังคับเจ้าของดูสลิปแล้วพิมพ์ยอดจริงเอง (กันกด OK รวดเดียว)
+  const input = prompt('พิมพ์จำนวนเงินจริงตามสลิป (กด "ดูสลิป" ตรวจก่อน)\nผู้ส่ง: ' + (it.submittedBy || '-') + '\nชื่อ: ' + (it.name || '-') + '\nยอดที่พนักงานแจ้ง: ' + fmt(amt(it)) + '  ← ตรวจให้ตรงกับสลิป', '');
+  if (input === null) return;
+  const amount = parseFloat(String(input).replace(/[,\s]/g, ''));   // เจ้าของพิมพ์ "1,000" ได้ — ตัดจุลภาค/ช่องว่างก่อน (parseFloat("1,000")=1)
+  if (!amount || amount <= 0) { alert('จำนวนเงินไม่ถูกต้อง — พิมพ์ยอดตามสลิป'); return; }
+  putRecord({
+    id: it.id, amount,
+    name: it.name || 'ไม่ระบุชื่อ', bank: it.bank || '', date: it.date || todayStr(),
+    note: it.note || '', slipRef: '', slipHash: it.slipHash || '', slipTxn: it.slipTxn || '',
+    slipVerified: false, manual: true,
+    approvedBy: (currentUser && currentUser.email) || '', submittedBy: it.submittedBy || '',
+    hasImg: !!it.hasImg
+  });   // รูปสลิปอยู่ที่ slips/{id} แล้ว carry over อัตโนมัติ (id เดียวกัน)
+  const pref = pendingRef(); if (pref) pref.child(it.id).remove().catch(() => {});
+}
+function rejectPending(id) {
+  if (role !== 'owner') { alert('เฉพาะเจ้าของจัดการได้'); return; }
+  if (!confirm('ปฏิเสธและลบรายการนี้ออกจากคิว?')) return;
+  const pref = pendingRef(); if (pref) pref.child(id).remove().catch(() => {});
+  const sr = slipsRef(); if (sr) { try { sr.child(id).remove().catch(() => {}); } catch (e) {} }
+}
+function renderPending() {
+  const box = document.getElementById('pendingBox');
+  if (!box) return;
+  const items = (pendingData || []).slice().sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
+  if (!items.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = 'block';
+  let html = '<div class="pending-head">🕒 รออนุมัติ ' + items.length + ' รายการ</div>';
+  items.forEach(it => {
+    const eid = jsq(it.id);
+    const acts = (role === 'owner')
+      ? `<button class="pi-btn pi-ok" onclick="approvePending('${eid}')">✓ อนุมัติ</button><button class="pi-btn pi-no" onclick="rejectPending('${eid}')">✕</button>`
+      : '<span class="pi-wait">รออนุมัติ</span>';
+    html += `<div class="pending-item">
+      <div class="pi-info">
+        <div class="pi-amt">${fmt(amt(it))} ฿ <span class="pi-tag">พนักงานกรอก</span></div>
+        <div class="pi-sub">${esc2(it.name || 'ไม่ระบุชื่อ')} · ${esc2(it.bank || '-')} · ${esc2(it.date || '')}</div>
+        <div class="pi-by">ส่งโดย ${esc2(it.submittedBy || '-')}</div>
+      </div>
+      <div class="pi-actions">
+        <button class="pi-btn pi-view" onclick="openSlip('${eid}')">ดูสลิป</button>
+        ${acts}
+      </div>
+    </div>`;
+  });
+  box.innerHTML = html;
+}
+async function openSlip(id) {
+  let box = document.getElementById('slipLightbox');
+  if (!box) {
+    box = document.createElement('div'); box.id = 'slipLightbox'; box.className = 'slip-lightbox';
+    box.innerHTML = '<img id="slipLbImg" alt="สลิป" style="display:none"><div id="slipLbMsg" class="slip-lb-msg"></div><div class="slip-lb-close">แตะเพื่อปิด</div>';
+    box.addEventListener('click', () => box.classList.remove('show'));
+    document.body.appendChild(box);
+  }
+  const imgEl = document.getElementById('slipLbImg'), msg = document.getElementById('slipLbMsg');
+  imgEl.style.display = 'none'; msg.style.display = 'block'; msg.textContent = '⏳ กำลังโหลดสลิป...';
+  box.classList.add('show');
+  try {
+    const ref = slipsRef();
+    const snap = await ref.child(id).once('value');
+    const v = snap.val();
+    const src = (v && typeof v === 'object') ? v.img : v;
+    if (src) { imgEl.src = src; imgEl.style.display = 'block'; msg.style.display = 'none'; }
+    else { msg.textContent = 'ไม่พบรูปสลิป (อาจเป็นรายการเก่าก่อนเปิดฟีเจอร์นี้)'; }
+  } catch (e) { msg.textContent = 'โหลดสลิปไม่ได้: ' + (e.message || ''); }
+}
+async function handleSlip(input) {
+  _ocrToken++;   // ยกเลิกผลอ่านสลิปใบก่อน (ถ้ายังอ่านค้างอยู่)
+  const myTok = _ocrToken;   // จำเลขงานของเรา — ถ้าฟอร์มถูกปิด/เปิดใหม่ระหว่างอ่านไฟล์ ต้องทิ้งงานนี้
+  const file = input.files && input.files[0];
+  currentSlipTxn = '';   // แนบสลิปใหม่ = รีเซ็ตเลขที่รายการ (จะถูกอ่านใหม่ตอน OCR)
+  if (!file) { setSlipStatus('', ''); currentSlipImg=''; document.getElementById('fSlipRef').value=''; document.getElementById('fSlipHash').value=''; return; }
+  setSlipStatus('busy', '⏳ กำลังอ่านสลิป...');
+  try {
+    const buf = await file.arrayBuffer();
+    const hash = await sha256(buf);
+    const url = URL.createObjectURL(new Blob([buf]));
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    URL.revokeObjectURL(url);
+    if (myTok !== _ocrToken) return;   // ถูกยกเลิกระหว่างอ่านไฟล์ (ปิดฟอร์ม/เปิดใหม่/เปลี่ยนสลิป) — ห้ามเขียนอะไรทั้งนั้น
+    const qr = readQRfromImage(img);
+    try { currentSlipImg = compressToDataURL(img); } catch (e) { currentSlipImg = ''; }   // เก็บรูปสลิป (บีบอัด)
+    document.getElementById('fSlipHash').value = hash;
+    document.getElementById('fSlipRef').value = qr || '';
+    document.getElementById('fSlipVerified').value = '';
+    slipRoute(img, qr);
+  } catch (e) {
+    if (myTok !== _ocrToken) return;   // งานเก่าที่ล้มช้า — ห้ามมาล้างค่าของฟอร์ม/งานใหม่กว่า
+    // ถอดรูปไม่สำเร็จ (เช่น HEIC บนเดสก์ท็อป/ไฟล์เสีย) — ทิ้งรูปเสมอ (กันบันทึกรูปผิดใบ)
+    currentSlipImg = '';
+    // เพิ่มรายการใหม่: ล้าง QR/hash ที่อาจค้างจากสลิปใบก่อนในเซสชันเดียวกัน
+    // แก้ไขรายการเดิม: คงค่าสลิปเดิมของรายการไว้ (การแนบไฟล์เสียไม่ควรลบสถานะยืนยันธนาคารทิ้ง)
+    if (!document.getElementById('editId').value) {
+      document.getElementById('fSlipRef').value = '';
+      document.getElementById('fSlipHash').value = '';
+      document.getElementById('fSlipVerified').value = '';
+    }
+    setSlipStatus('warn', '⚠️ อ่านไฟล์ไม่สำเร็จ ลองใหม่อีกครั้ง');
+  }
+}
+// เลือกทางเดินของสลิปตามฝั่ง เข้า/ออก + มี/ไม่มี QR — เรียกซ้ำได้เมื่อสลับฝั่งหลังแนบสลิปแล้ว
+function slipRoute(img, qr) {
+  if (modalIO === 'out') {
+    // จ่ายออก: ไม่ยืนยันกับธนาคาร (SlipOK ใช้เช็คเฉพาะเงินเข้า) — อ่านสลิปด้วย OCR เติมให้เสมอ ไม่ว่ามี QR หรือไม่
+    const baseMsg = '📎 แนบสลิปโอนออกแล้ว — ตรวจ <b>จำนวนเงิน/ผู้รับ</b> ให้ตรงกับสลิปก่อนกด "บันทึก"';
+    setSlipStatus('warn', baseMsg + '<br>🔍 <b>กำลังอ่านตัวหนังสือในสลิป…</b> <small>(ครั้งแรกรอโหลดตัวอ่านสักครู่)</small>');
+    ocrAutofill(img, baseMsg);
+  } else if (qr) setSlipStatus('ok', '📎 อ่านสลิปสำเร็จ — กด <b>"บันทึก"</b> เพื่อยืนยันกับธนาคารและบันทึก<br><small>ยอด/ชื่อ/วันที่ จะดึงจากธนาคารให้อัตโนมัติ (กันเงินปลอม)</small>');
+  else {
+    const baseMsg = role === 'owner'
+      ? '⚠️ อ่าน QR ไม่เจอ (สลิป K BIZ/ภาพครอบไม่ติด QR) — ตรวจ <b>จำนวนเงิน</b> แล้วกด "บันทึก"'
+      : '⚠️ สลิปนี้ไม่มี QR (เช่น K BIZ) — ตรวจ <b>จำนวนเงินตามสลิป</b> แล้วกด "บันทึก" เพื่อ <b>ส่งให้เจ้าของอนุมัติ</b>';
+    setSlipStatus('warn', baseMsg + '<br>🔍 <b>กำลังอ่านตัวหนังสือในสลิป…</b> <small>(ครั้งแรกรอโหลดตัวอ่านสักครู่)</small>');
+    ocrAutofill(img, baseMsg);   // อ่านในเครื่อง เติมช่องที่ว่างให้ (ฟรี ไม่ส่งรูปออกไปไหน)
+  }
+}
+function esc2(s) { return (s||'').toString().replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+function del(id) {
+  if (role === 'employee') { alert('พนักงานลบรายการไม่ได้'); return; }
+  if (!confirm('ลบรายการนี้?')) return;
+  removeRecord(id);
+  const sr = slipsRef(); if (sr) { try { sr.child(id).remove().catch(()=>{}); } catch(e){} }   // ลบรูปสลิปด้วย
+}
+const BACKUPKEY = 'bank_backup';
+function clearAll() {
+  if (role === 'employee') { alert('พนักงานล้างข้อมูลไม่ได้'); return; }
+  if (!data.length) { alert('ไม่มีข้อมูลให้ล้าง'); return; }
+  if (!confirm('⚠️ ล้างข้อมูลทั้งหมด ' + data.length + ' รายการ?\n(ระบบจะสำรองไว้ให้กู้คืนได้)')) return;
+  const typed = prompt('กันกดพลาด — พิมพ์คำว่า  ล้าง  เพื่อยืนยัน');
+  if (typed === null) return;
+  if (typed.trim() !== 'ล้าง') { alert('ยกเลิก (พิมพ์ไม่ตรง)'); return; }
+  // ต้องสำรองสำเร็จก่อน ถึงจะลบ (กันลบทิ้งโดยไม่มีที่กู้คืน)
+  try { localStorage.setItem(BACKUPKEY, JSON.stringify({ when: Date.now(), items: data })); }
+  catch (e) {
+    if (!confirm('⚠️ สำรองข้อมูลในเครื่องไม่สำเร็จ (พื้นที่อาจเต็ม)\nถ้าล้างตอนนี้จะกู้คืนไม่ได้ — ยืนยันจะล้างเลยไหม?')) return;
+  }
+  if (rtOn && dbRef && dbRef.parent) {
+    dbRef.parent.child('slips').remove().catch(()=>{});
+    dbRef.parent.child('pending').remove().catch(()=>{});   // ล้างคิวรออนุมัติด้วย (คิวชี้ไปข้อมูลที่ล้างทิ้งแล้ว)
+    dbRef.remove();
+  }
+  else { data = []; persistLocal(); render(); }
+  alert('ล้างข้อมูลแล้ว ✅\nถ้าพลาด กดปุ่ม "↩️ กู้คืน" เพื่อเอากลับได้ (จากเครื่องนี้)');
+}
+function restoreBackup() {
+  if (role === 'employee') { alert('พนักงานกู้คืนไม่ได้'); return; }
+  let bk = null; try { bk = JSON.parse(localStorage.getItem(BACKUPKEY)); } catch (e) {}
+  if (!bk || !bk.items || !bk.items.length) { alert('ไม่มีข้อมูลสำรองในเครื่องนี้\n(ปุ่มกู้คืนใช้ได้เฉพาะเครื่องที่กดล้าง และเฉพาะข้อมูลที่ล้างหลังอัปเดตนี้)'); return; }
+  const total = bk.items.reduce((s, x) => s + Number(x.amount || 0), 0);
+  if (!confirm('กู้คืน ' + bk.items.length + ' รายการ (รวม ' + fmt(total) + ' ฿) กลับเข้าระบบ?')) return;
+  if (rtOn && dbRef) {
+    const obj = {}; bk.items.forEach(it => { if (it && it.id) obj[it.id] = it; });
+    dbRef.update(obj);
+  } else { data = bk.items; persistLocal(); render(); }
+  alert('กู้คืนข้อมูลเรียบร้อย ✅');
+}
+function exportCSV() {
+  if (!data.length) { alert('ยังไม่มีข้อมูล'); return; }
+  let csv = '﻿วันที่,ประเภท,ผู้โอน/ผู้รับ,ธนาคาร,จำนวนเงิน,โน้ต\n';
+  const cell = v => { let s = (v == null ? '' : v).toString(); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; };  // กัน CSV/formula injection
+  data.filter(x => x && typeof x === 'object')
+      .sort((a,b) => String(a.date||'').localeCompare(String(b.date||'')))
+      .forEach(it => { csv += [it.date||'', isOut(it) ? 'จ่ายออก' : 'รับเข้า', cell(it.name), cell(it.bank), signedAmt(it), cell(it.note)].join(',') + '\n'; });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ยอดโอนเข้า_' + todayStr() + '.csv';
+  a.click();
+}
+
+// ---- ข้อมูลที่จะส่งออก (เรียงตามวันที่) + ยอดรวม ----
+function exportRows() {
+  return data.filter(x => x && typeof x === 'object')
+             .sort((a,b) => String(a.date||'').localeCompare(String(b.date||'')));
+}
+
+// ---- สร้างไฟล์ .xlsx จริง (ZIP+XML) เอง ไม่ต้องพึ่ง library — เปิดได้ทั้งมือถือและคอม ----
+function _concat(list) { let n = 0; list.forEach(a => n += a.length); const out = new Uint8Array(n); let o = 0; list.forEach(a => { out.set(a, o); o += a.length; }); return out; }
+const _CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; } return t; })();
+function _crc32(buf) { let c = 0xFFFFFFFF; for (let i = 0; i < buf.length; i++) c = _CRC[(c ^ buf[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function _zipStore(files) {
+  const enc = new TextEncoder();
+  const u16 = n => new Uint8Array([n & 0xFF, (n >>> 8) & 0xFF]);
+  const u32 = n => new Uint8Array([n & 0xFF, (n >>> 8) & 0xFF, (n >>> 16) & 0xFF, (n >>> 24) & 0xFF]);
+  const chunks = [], central = []; let offset = 0; const DT = 0, DD = 0x21;   // วันที่ในไฟล์ = 1980-01-01
+  files.forEach(f => {
+    const nb = enc.encode(f.name), crc = _crc32(f.data), sz = f.data.length;
+    const lh = _concat([u32(0x04034b50), u16(20), u16(0x0800), u16(0), u16(DT), u16(DD), u32(crc), u32(sz), u32(sz), u16(nb.length), u16(0), nb]);
+    chunks.push(lh, f.data);
+    central.push(_concat([u32(0x02014b50), u16(20), u16(20), u16(0x0800), u16(0), u16(DT), u16(DD), u32(crc), u32(sz), u32(sz), u16(nb.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(offset), nb]));
+    offset += lh.length + f.data.length;
+  });
+  const cb = _concat(central);
+  const end = _concat([u32(0x06054b50), u16(0), u16(0), u16(files.length), u16(files.length), u32(cb.length), u32(offset), u16(0)]);
+  return new Blob([...chunks, cb, end], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+function _xlsxBlob(aoa) {
+  const enc = new TextEncoder();
+  const col = n => { let s = ''; n++; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+  const xe = s => String(s == null ? '' : s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '').replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' }[c]));   // ตัดอักขระควบคุมที่ XML ห้าม (กันไฟล์ .xlsx เสีย)
+  let rx = '';
+  aoa.forEach((row, r) => {
+    let cs = '';
+    row.forEach((v, c) => {
+      const ref = col(c) + (r + 1);
+      if (typeof v === 'number' && isFinite(v)) cs += `<c r="${ref}"><v>${v}</v></c>`;
+      else cs += `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xe(v)}</t></is></c>`;
+    });
+    rx += `<row r="${r + 1}">${cs}</row>`;
+  });
+  const P = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+  const sheet = P + `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rx}</sheetData></worksheet>`;
+  const ct = P + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>';
+  const rels = P + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+  const wb = P + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="ยอดโอนเข้า" sheetId="1" r:id="rId1"/></sheets></workbook>';
+  const wbr = P + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>';
+  return _zipStore([
+    { name: '[Content_Types].xml', data: enc.encode(ct) },
+    { name: '_rels/.rels', data: enc.encode(rels) },
+    { name: 'xl/workbook.xml', data: enc.encode(wb) },
+    { name: 'xl/_rels/workbook.xml.rels', data: enc.encode(wbr) },
+    { name: 'xl/worksheets/sheet1.xml', data: enc.encode(sheet) },
+  ]);
+}
+function exportExcel() {
+  if (!data.length) { alert('ยังไม่มีข้อมูล'); return; }
+  const rows = exportRows();
+  const net = rows.reduce((s, x) => s + signedAmt(x), 0);
+  const sumIn = rows.filter(x => !isOut(x)).reduce((s, x) => s + amt(x), 0);
+  const sumOut = rows.filter(isOut).reduce((s, x) => s + amt(x), 0);
+  const aoa = [['วันที่', 'ประเภท', 'ผู้โอน/ผู้รับ', 'ธนาคาร', 'จำนวนเงิน', 'โน้ต']];
+  rows.forEach(it => aoa.push([it.date || '', isOut(it) ? 'จ่ายออก' : 'รับเข้า', it.name || '', it.bank || '', signedAmt(it), it.note || '']));
+  aoa.push(['', '', '', '', '', '']);
+  aoa.push([`รับเข้ารวม`, '', '', '', sumIn, '']);
+  aoa.push([`จ่ายออกรวม`, '', '', '', -sumOut, '']);
+  aoa.push([`ยอดคงเหลือ (${rows.length} รายการ)`, '', '', '', net, '']);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(_xlsxBlob(aoa));
+  a.download = 'ยอดโอนเข้า_' + todayStr() + '.xlsx';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+function exportPDF() {
+  if (!data.length) { alert('ยังไม่มีข้อมูล'); return; }
+  const esc = s => (s || '').toString().replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+  const rows = exportRows();
+  const net = rows.reduce((s,x) => s + signedAmt(x), 0);
+  const sumIn = rows.filter(x => !isOut(x)).reduce((s,x) => s + amt(x), 0);
+  const sumOut = rows.filter(isOut).reduce((s,x) => s + amt(x), 0);
+  let html = '<h2 style="text-align:center;margin:0 0 4px">HURT SHOP — รายการบัญชีร้าน</h2>';
+  html += `<p style="text-align:center;margin:0 0 14px;color:#555;font-size:13px">พิมพ์เมื่อ ${thaiDate(todayStr())} · ${rows.length} รายการ · รับเข้า ${fmt(sumIn)} − จ่ายออก ${fmt(sumOut)} = คงเหลือ ${fmt(net)} ฿</p>`;
+  html += '<table><thead><tr>' +
+    ['วันที่','ประเภท','ผู้โอน/ผู้รับ','ธนาคาร','จำนวนเงิน (฿)','โน้ต'].map(h => `<th>${h}</th>`).join('') +
+    '</tr></thead><tbody>';
+  const safeDate = d => /^\d{4}-\d{2}-\d{2}/.test(d || '') ? thaiDate(d) : (d || '-');
+  rows.forEach(it => {
+    const out = isOut(it);
+    html += '<tr>' +
+      `<td>${esc(safeDate(it.date))}</td>` +
+      `<td>${out ? 'จ่ายออก' : 'รับเข้า'}</td>` +
+      `<td>${esc(it.name)}</td>` +
+      `<td>${esc(it.bank)}</td>` +
+      `<td style="text-align:right${out ? ';color:#c0392b' : ''}">${(out ? '−' : '') + fmt(amt(it))}</td>` +
+      `<td>${esc(it.note)}</td>` +
+      '</tr>';
+  });
+  html += `<tr><td colspan="4" style="text-align:right"><b>ยอดคงเหลือ</b></td><td style="text-align:right"><b>${(net<0?'−':'')+fmt(Math.abs(net))}</b></td><td></td></tr>`;
+  html += '</tbody></table>';
+  const doc = document.getElementById('pdfDoc');
+  doc.innerHTML = html;
+  document.body.classList.add('pdf-mode');
+  const cleanup = () => { document.body.classList.remove('pdf-mode'); doc.innerHTML = ''; window.removeEventListener('afterprint', cleanup); };
+  window.addEventListener('afterprint', cleanup);
+  setTimeout(() => { window.print(); setTimeout(cleanup, 800); }, 60);
+}
+
+/* ---------- render ---------- */
+const amt = x => Number(x && x.amount) || 0;   // กัน NaN
+const isOut = x => !!(x && x.type === 'out');   // รายการโอนออก
+const signedAmt = x => amt(x) * (isOut(x) ? -1 : 1);   // เข้า=+, ออก=−  (ใช้คิดยอดคงเหลือ)
+const jsq = s => (s == null ? '' : s.toString()).replace(/[\\'"<>&]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4,'0'));  // escape id ใน onclick
+function render() {
+  const all = data.filter(x => x && typeof x === 'object' && x.date);   // ตัดข้อมูลเสีย
+  const months = [...new Set(all.map(x => x.date.slice(0,7)))].sort().reverse();
+  const fm = document.getElementById('filterMonth');
+  fm.innerHTML = '<option value="all">เลือกเดือน...</option>' +
+    months.map(m => `<option value="${m}">${monthLabel(m)}</option>`).join('');
+  // ถ้ากรองเดือนอยู่แต่เดือนนั้นไม่มีรายการแล้ว (ถูกลบหมด) → กลับไปโหมด "ทั้งหมด" ทั้งค่าและดรอปดาวน์ (กันลิสต์ว่างค้าง)
+  if (dateRange.indexOf('m:')===0 && !months.includes(dateRange.slice(2))) dateRange = 'all';
+  fm.value = (dateRange.indexOf('m:')===0 && [...fm.options].some(o=>o.value===dateRange.slice(2))) ? dateRange.slice(2) : 'all';
+  document.querySelectorAll('#rangeSeg .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.r === dateRange));
+
+  const q = document.getElementById('search').value.trim().toLowerCase();
+
+  let rows = all.filter(it => {
+    if (!inRange(it.date)) return false;
+    if (q && !(((it.name||'') + ' ' + (it.bank||'') + ' ' + (it.note||'')).toLowerCase().includes(q))) return false;
+    return true;
+  }).sort((a,b) => b.date.localeCompare(a.date) || String(b.id).localeCompare(String(a.id)));
+
+  const net = rows.reduce((s,x) => s + signedAmt(x), 0);   // ยอดคงเหลือ = รับเข้า − จ่ายออก
+  const sumIn = rows.filter(x => !isOut(x)).reduce((s,x) => s + amt(x), 0);
+  const sumOut = rows.filter(isOut).reduce((s,x) => s + amt(x), 0);
+  const totalEl = document.getElementById('totalAmt');
+  totalEl.textContent = (net < 0 ? '−' : '') + fmt(Math.abs(net));
+  totalEl.parentElement.classList.toggle('neg', net < 0);
+  document.getElementById('sumIn').textContent = fmt(sumIn);
+  document.getElementById('sumOut').textContent = sumOut ? '−' + fmt(sumOut) : '0';
+  document.getElementById('count').textContent = rows.length;
+  document.getElementById('sumLabel').textContent = rangeLabel();
+
+  const tm = todayStr().slice(0,7), td = todayStr();
+  document.getElementById('thisMonth').textContent = fmtShort(all.filter(x => x.date.slice(0,7) === tm).reduce((s,x) => s + signedAmt(x), 0));
+  document.getElementById('today').textContent = fmtShort(all.filter(x => x.date === td).reduce((s,x) => s + signedAmt(x), 0));
+
+  const list = document.getElementById('list');
+  if (!rows.length) {
+    list.innerHTML = '<div class="empty"><div class="ic">📭</div><p>ยังไม่มีรายการ<br>กดปุ่มด้านล่าง เพิ่มยอด + แนบสลิป</p></div>';
+    return;
+  }
+  let html = '', lastDate = '';
+  const esc = s => (s||'').toString().replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+  rows.forEach(it => {
+    if (it.date !== lastDate) {
+      lastDate = it.date;
+      const dayNet = rows.filter(x => x.date === it.date).reduce((s,x) => s + signedAmt(x), 0);
+      html += `<div class="group-date"><span>${thaiDate(it.date)}</span><span>${(dayNet<0?'−':'')+fmt(Math.abs(dayNet))} ฿</span></div>`;
+    }
+    const eid = jsq(it.id);
+    const out = isOut(it);
+    html += `
+      <div class="item" onclick="openModal('${eid}')">
+        <div class="ava${out ? ' out' : ''}">${out ? '↑' : '↓'}</div>
+        <div class="info">
+          <div class="name">${esc(it.name)}</div>
+          <div class="sub">${esc(it.bank) || 'ไม่ระบุธนาคาร'}</div>
+          ${it.note ? `<div class="note">${esc(it.note)}</div>` : ''}
+          ${out ? `<div class="slip out-tag">💸 โอนออก</div>` : (it.slipVerified ? `<div class="slip has">🛡️ ยืนยันธนาคารแล้ว</div>` : ((it.slipRef || it.slipHash) ? `<div class="slip has">📎 มีสลิป${it.slipRef ? ' · QR ✓' : ''}</div>` : ''))}
+          ${(it.hasImg || it.slipVerified) ? `<button class="slipview" onclick="event.stopPropagation(); openSlip('${eid}')">👁️ ดูสลิป</button>` : ''}
+        </div>
+        <div class="amt">
+          <b class="${out ? 'amt-out' : ''}">${out ? '−' : '+'}${fmt(amt(it))}</b>
+          <button class="del" onclick="event.stopPropagation(); del('${eid}')">ลบ</button>
+        </div>
+      </div>`;
+  });
+  list.innerHTML = html;
+}
+
+document.getElementById('filterMonth').addEventListener('change', function(){ dateRange = this.value === 'all' ? 'all' : ('m:' + this.value); render(); });
+document.getElementById('search').addEventListener('input', render);
+document.getElementById('report').addEventListener('click', e => { if (e.target.id === 'report') closeReport(); });
+
+/* ---------- รายงาน + PDF ---------- */
+const MON_TH = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function openReport(){ buildReport(); document.getElementById('report').classList.add('show'); }
+function closeReport(){ document.getElementById('report').classList.remove('show'); homeTab(); }
+function printReport(){ window.print(); }
+function buildReport(){
+  const esc = s => (s||'').toString().replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+  const byDay={}, byMonth={}, byCust={};
+  data.forEach(x=>{ if(isOut(x)) return;   // กราฟ + Top5 นับเฉพาะยอดรับเข้า
+    const a=Number(x.amount)||0;
+    byDay[x.date]=(byDay[x.date]||0)+a;
+    byMonth[x.date.slice(0,7)]=(byMonth[x.date.slice(0,7)]||0)+a;
+    const c=(x.name||'ไม่ระบุ'); byCust[c]=(byCust[c]||0)+a; });
+  const grand=data.reduce((s,x)=>s+signedAmt(x),0);   // ยอดคงเหลือ = รับเข้า − จ่ายออก
+  const grandIn=data.filter(x=>!isOut(x)).reduce((s,x)=>s+amt(x),0);
+  const grandOut=data.filter(isOut).reduce((s,x)=>s+amt(x),0);
+  const tm=todayStr().slice(0,7), td=todayStr();
+  const monthTotal=data.filter(x=>x.date.slice(0,7)===tm).reduce((s,x)=>s+signedAmt(x),0);
+  const todayTotal=data.filter(x=>x.date===td).reduce((s,x)=>s+signedAmt(x),0);
+  const days=[]; for(let i=13;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); days.push(localDateStr(d)); }
+  const dayMax=Math.max(1,...days.map(d=>byDay[d]||0));
+  const dayBars=days.map(d=>{ const v=byDay[d]||0; const h=Math.round(v/dayMax*100); return `<div class="bar-col"><div class="cbar" style="height:${h}%" title="${fmt(v)}"></div><em>${Number(d.slice(8,10))}</em></div>`; }).join('');
+  const mons=[]; for(let i=5;i>=0;i--){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-i); mons.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')); }   // setDate(1) ก่อน กัน rollover วันสิ้นเดือน (31→เดือนถัดไป)
+  const monMax=Math.max(1,...mons.map(k=>byMonth[k]||0));
+  const monBars=mons.map(k=>{ const v=byMonth[k]||0; const h=Math.round(v/monMax*100); return `<div class="bar-col"><div class="cbar" style="height:${h}%" title="${fmt(v)}"></div><em>${MON_TH[Number(k.slice(5,7))-1]}</em></div>`; }).join('');
+  const tops=Object.entries(byCust).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const topHTML = tops.length ? tops.map(([n,v])=>`<div class="toprow"><span>${esc(n)}</span><b>${fmt(v)} ฿</b></div>`).join('') : '<div class="rsub">ยังไม่มีข้อมูล</div>';
+  const now=new Date();
+  document.getElementById('reportBody').innerHTML =
+    '<h2>📊 รายงานสรุป HURT SHOP</h2>'+
+    '<div class="rsub">ออก ณ '+now.getDate()+' '+MON_TH[now.getMonth()]+' '+(now.getFullYear()+543)+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+' น.</div>'+
+    '<div class="rstat"><div><span>ยอดคงเหลือ</span><b>'+(grand<0?'−':'')+fmt(Math.abs(grand))+' ฿</b></div><div><span>รับเข้าทั้งหมด</span><b>'+fmt(grandIn)+' ฿</b></div><div><span>จ่ายออกทั้งหมด</span><b>'+fmt(grandOut)+' ฿</b></div></div>'+
+    '<div class="rsub" style="margin-top:6px">เดือนนี้ (สุทธิ) '+(monthTotal<0?'−':'')+fmt(Math.abs(monthTotal))+' ฿ · วันนี้ (สุทธิ) '+(todayTotal<0?'−':'')+fmt(Math.abs(todayTotal))+' ฿</div>'+
+    '<h3>ยอดรับเข้ารายวัน (14 วันล่าสุด)</h3><div class="chart">'+dayBars+'</div>'+
+    '<h3>ยอดรับเข้ารายเดือน (6 เดือนล่าสุด)</h3><div class="chart">'+monBars+'</div>'+
+    '<h3>ลูกค้าจ่ายเยอะสุด (Top 5)</h3><div class="toplist">'+topHTML+'</div>';
+}
+
+/* ---------- auth (เข้าสู่ระบบด้วย Google) ---------- */
+// บทบาทตามอีเมล: เจ้าของ = ทำได้ทุกอย่าง, พนักงาน = เพิ่มสลิปได้อย่างเดียว
+const OWNER_EMAILS = ["chitipat.kao@gmail.com"];
+const EMPLOYEE_EMAILS = ["dynosgaming01@gmail.com", "chitipat.kee@gmail.com"];
+const ALLOWED_EMAILS = [...OWNER_EMAILS, ...EMPLOYEE_EMAILS];
+let currentUser = null;
+let role = 'owner';   // 'owner' | 'employee'
+let signingIn = false;   // กำลังแลก token → เข้าสู่ระบบ (กันหน้าจอเด้งกลับเป็นปุ่มล็อกอินระหว่างรอ)
+
+function isAllowed(email) {
+  if (!email) return false;
+  return ALLOWED_EMAILS.map(e => e.toLowerCase()).includes(email.toLowerCase());
+}
+function isOwnerEmail(email) {
+  return OWNER_EMAILS.map(e => e.toLowerCase()).includes((email || '').toLowerCase());
+}
+function activeConfig() {
+  const rawCfg = localStorage.getItem(CFGKEY);
+  if (rawCfg) { const c = parseConfig(rawCfg); if (c) return { cfg: c, room: localStorage.getItem(ROOMKEY) || BAKED_ROOM }; }
+  if (BAKED_CONFIG && BAKED_CONFIG.apiKey) return { cfg: BAKED_CONFIG, room: BAKED_ROOM };
+  return null;
+}
+function showLogin(msg, email) {
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginMsg').textContent = msg || 'เข้าสู่ระบบเพื่อใช้งาน';
+  document.getElementById('gBtn').style.display = email ? 'none' : 'flex';
+  document.getElementById('loginSignout').style.display = email ? 'block' : 'none';
+}
+function hideLogin() { document.getElementById('loginScreen').style.display = 'none'; }
+function isInAppBrowser() {
+  const ua = (navigator.userAgent || '') + ' ' + (navigator.vendor || '');
+  return /FBAN|FBAV|FB_IAB|Instagram|Line\/|Messenger|MicroMessenger|TikTok/i.test(ua);
+}
+function isMobile() { return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || ''); }
+function isIOSWebKit() {   // iPhone/iPad ทุกเบราว์เซอร์ (รวม Chrome iOS = WebKit) + iPad โหมดเดสก์ท็อป
+  const ua = navigator.userAgent || '';
+  return /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && 'ontouchend' in document);
+}
+function showAuthError(err) {
+  const code = err && err.code || '';
+  let msg = (err && (err.message || err.code)) || 'ไม่ทราบสาเหตุ';
+  if (code === 'auth/unauthorized-domain') msg = 'โดเมนนี้ยังไม่ได้รับอนุญาตใน Firebase (Authentication → Settings → Authorized domains)';
+  if (/missing.initial.state/i.test(code + ' ' + msg)) msg = 'Safari ไม่รองรับการล็อกอินแบบพาไปอีกหน้า — แตะปุ่มล็อกอินที่หน้านี้อีกครั้งได้เลย';
+  if (code === 'auth/operation-not-allowed') msg = 'ยังไม่ได้เปิด Google sign-in ใน Firebase (Authentication → Sign-in method)';
+  if (/disallowed_useragent|operation-not-supported/i.test(code + msg) || isInAppBrowser())
+    msg = 'เบราว์เซอร์ในแอป (LINE/Facebook) ล็อกอิน Google ไม่ได้ — กดปุ่ม ••• มุมขวา แล้วเลือก "เปิดในเบราว์เซอร์" (Safari/Chrome)';
+  const el = document.getElementById('loginMsg'); if (el) el.textContent = 'เข้าสู่ระบบไม่สำเร็จ: ' + msg;
+}
+/* ล็อกอินหลัก: Google Identity Services (GIS) — ผลกลับในหน้าเดิมผ่าน callback ไม่พึ่ง storage ข้ามโดเมน
+   (แก้ปัญหา iOS Safari: popup ของ Firebase เลือกบัญชีแล้วผลส่งกลับไม่ถึงหน้าเว็บ) */
+const GOOGLE_OAUTH_CLIENT_ID = '273049715377-nak6qa4usnhppdulbr244a3l40b6jae9.apps.googleusercontent.com';   // public (โชว์ใน URL ล็อกอินอยู่แล้ว)
+let _gisLoading = null, _gisClient = null;
+function gisReady() { return !!(window.google && google.accounts && google.accounts.oauth2); }
+function loadGIS() {
+  if (gisReady()) return Promise.resolve();
+  if (_gisLoading) return _gisLoading;
+  _gisLoading = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.async = true; s.defer = true;
+    s.onload = res;
+    s.onerror = () => { _gisLoading = null; rej(new Error('gis load fail')); };
+    document.head.appendChild(s);
+  });
+  return _gisLoading;
+}
+window._diag = window._diag || {};   // จับเวลารายขั้น: load/init/tap/token/signed — ไว้ชี้ว่าช้าขั้นไหน
+function _diagReset() { const d = window._diag; d.tap = d.token = null; }
+/* ล็อกอินหลักของ iOS: พาไปหน้า Google เต็มหน้า แล้วเด้งกลับพร้อม token ใน #hash
+   — เส้นทางคลาสสิก ไม่มี popup/iframe/storage ข้ามโดเมน (Safari ไม่มีอะไรให้บล็อก)
+   redirect URI ปรับตาม URL จริงอัตโนมัติ — ย้าย repo/path ไหนก็ใช้ได้ (ต้องลงทะเบียน URI นั้นใน Google Cloud) */
+function redirectSignIn() {
+  const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  try { sessionStorage.setItem('oauthState', nonce); } catch (e) {}
+  const redirectUri = location.origin + location.pathname;   // = หน้าปัจจุบันเป๊ะ (เช่น /workpulse/bank.html หรือ /Hurtshop/)
+  const p = new URLSearchParams({
+    client_id: GOOGLE_OAUTH_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'token',
+    scope: 'openid email profile',
+    state: nonce,
+    prompt: 'select_account',
+  });
+  const el = document.getElementById('loginMsg'); if (el) el.textContent = 'กำลังพาไปหน้า Google...';
+  location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + p.toString();
+}
+function googleSignIn() {
+  if (!(window.firebase && firebase.auth)) { showAuthError({ code: 'noload', message: 'โหลด Firebase ไม่สำเร็จ — เช็คเน็ตแล้วรีเฟรชหน้า' }); return; }
+  if (isInAppBrowser()) { showAuthError({ code: 'inapp' }); return; }   // กัน Google บล็อก webview ในแอป
+  const el = document.getElementById('loginMsg');
+  // iOS: ใช้ redirect เต็มหน้าเสมอ — popup ทุกแบบ (Firebase/GIS storagerelay) มีปัญหากับ Safari เครื่องจริง
+  if (isIOSWebKit()) { redirectSignIn(); return; }
+  if (gisReady()) {
+    window._diag.tap = Date.now();
+    if (el) el.textContent = 'กำลังเปิดหน้า Google...';
+    try {
+      if (!_gisClient) _gisClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_OAUTH_CLIENT_ID,
+        scope: 'openid email profile',
+        prompt: 'select_account',
+        callback: resp => {
+          if (resp && resp.access_token) {
+            window._diag.token = Date.now();
+            signingIn = true;
+            if (el) el.textContent = 'กำลังยืนยันตัวตน...';
+            try { firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function () {}); } catch (e) {}   // จำบัญชีไว้ในเครื่อง
+            const cred = firebase.auth.GoogleAuthProvider.credential(null, resp.access_token);
+            firebase.auth().signInWithCredential(cred).catch(err => { signingIn = false; _diagReset(); showAuthError(err); });
+          } else {
+            _diagReset();
+            const why = resp && resp.error ? ' (' + resp.error + ')' : '';
+            if (el) el.textContent = 'เข้าสู่ระบบไม่สำเร็จ' + why + ' — ลองแตะปุ่มอีกครั้ง';
+          }
+        },
+        error_callback: err => {
+          _diagReset();
+          if (err && err.type === 'popup_closed') { if (el) el.textContent = 'หน้าต่าง Google ถูกปิดก่อนล็อกอินเสร็จ — ถ้าในหน้านั้นขึ้น Error 400 ให้ถ่ายจอส่งให้เจ้าของระบบ'; return; }
+          if (isIOSWebKit()) { if (el) el.textContent = 'เปิดหน้าต่าง Google ไม่ได้ (' + esc2((err && err.type) || '?') + ') — แตะปุ่มอีกครั้ง'; return; }
+          legacyPopupSignIn();   // เครื่องอื่น: เปิด popup ไม่ได้ → ลองกลไกเดิมของ Firebase
+        },
+      });
+      _gisClient.requestAccessToken();
+      return;
+    } catch (e) { if (isIOSWebKit()) { if (el) el.textContent = 'ระบบล็อกอินสะดุด — แตะปุ่มอีกครั้ง'; return; } }
+  } else {
+    loadGIS().catch(() => {});   // โหลดไว้ให้ทันแตะครั้งหน้า
+    // iOS ห้ามตกไปวิธีเดิม (popup Firebase ค้าง ~30 วิ บน Safari) — ให้รอ GIS โหลดเสร็จแล้วแตะใหม่
+    if (isIOSWebKit()) { if (el) el.textContent = 'กำลังเตรียมระบบล็อกอิน — รอ 2-3 วิ แล้วแตะปุ่มอีกครั้ง'; return; }
+  }
+  legacyPopupSignIn();
+}
+// วิธีเดิม (Firebase popup) — สำรองกรณี GIS ใช้ไม่ได้
+function legacyPopupSignIn() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  const el = document.getElementById('loginMsg'); if (el) el.textContent = 'กำลังเปิดหน้า Google...';
+  firebase.auth().signInWithPopup(provider).catch(err => {
+    if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') { if (el) el.textContent = 'เข้าสู่ระบบด้วย Google เพื่อใช้งาน'; return; }
+    if (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment') {
+      if (isIOSWebKit()) {
+        // iOS ห้ามถอยไป redirect — Safari กั้น storage ข้ามโดเมน จะจบที่หน้า "missing initial state" (ทางตัน)
+        if (el) el.textContent = 'Safari บล็อกหน้าต่างล็อกอิน — แตะปุ่มเดิมอีกครั้ง (ครั้งที่ 2 มักเปิดได้)\nถ้ายังไม่ได้: ตั้งค่า > แอป Safari > ปิด "บล็อกหน้าต่างที่เปิดขึ้นเอง" แล้วลองใหม่';
+        return;
+      }
+      if (el) el.textContent = 'กำลังพาไปหน้า Google...';
+      firebase.auth().signInWithRedirect(provider).catch(showAuthError);   // Android: redirect ยังใช้ได้ปกติ
+    } else {
+      showAuthError(err);
+    }
+  });
+}
+function googleSignOut() {
+  try { localStorage.removeItem('_lastUser'); localStorage.removeItem('_loginDiag'); } catch (e) {}   // ออกเอง ≠ เครื่องไม่จำ
+  if (window.firebase && firebase.auth) firebase.auth().signOut().then(() => location.reload());
+}
+
+let started = false;
+function startApp(room) { if (started) return; started = true; connectRT(activeConfig().cfg, room); }
+
+/* ---------- boot ---------- */
+(function boot() {
+  const ac = activeConfig();
+  if (!ac) {   // ไม่มี config → โหมดออฟไลน์ ไม่ต้องล็อกอิน
+    hideLogin(); setSync('', 'โหมดออฟไลน์ (เครื่องนี้)'); loadLocal(); render(); return;
+  }
+  if (!(window.firebase && firebase.auth)) {   // SDK โหลดไม่ขึ้น (เน็ต/บล็อก/แคช)
+    try {
+      if (!sessionStorage.getItem('fbRetry')) {   // ลองโหลดใหม่อัตโนมัติ 1 ครั้ง (กันเน็ตกระตุก)
+        if (window._oauthToken) sessionStorage.setItem('_tokTmp', window._oauthToken);   // token จาก redirect ถูกล้างจาก URL แล้ว — ฝากไว้ไม่ให้หายตอน reload
+        sessionStorage.setItem('fbRetry', '1'); location.reload(); return;
+      }
+    } catch (e) {}
+    showLogin('โหลด Firebase ไม่สำเร็จ\nแตะปุ่มด้านล่างเพื่อลองใหม่\nถ้ายังไม่ได้ ลองสลับ WiFi/เน็ต หรือปิดตัวบล็อกโฆษณาใน Safari');
+    const rb = document.getElementById('gBtn');
+    if (rb) { rb.style.display = 'flex'; rb.innerHTML = '🔄 ลองใหม่'; rb.onclick = function(){ try { sessionStorage.removeItem('fbRetry'); } catch (e) {} location.reload(); }; }
+    return;
+  }
+  try { sessionStorage.removeItem('fbRetry'); } catch (e) {}   // โหลดสำเร็จแล้ว เคลียร์ธงกันลองซ้ำ
+  try {   // รับ token ที่ฝากไว้ก่อน auto-reload รอบที่แล้ว (ถ้ามี)
+    const tt = sessionStorage.getItem('_tokTmp');
+    if (tt && !window._oauthToken) window._oauthToken = tt;
+    sessionStorage.removeItem('_tokTmp');
+  } catch (e) {}
+  try { if (!app) app = firebase.initializeApp(ac.cfg); } catch (e) {}
+  // เบี่ยงเซิร์ฟเวอร์ auth (identitytoolkit/securetoken) ไปผ่าน Worker "authproxy" (Cloudflare edge)
+  // — วัดจากเครื่องจริง: เข้า googleapis ตรงช้า 27-96 วิ แต่เข้า Worker เร็วปกติ (เส้นเดียวกับตรวจสลิป)
+  try {
+    const d = firebase.auth()._delegate;
+    if (d && d.config) {
+      d.config.apiHost = 'authproxy.chitipat-kao.workers.dev/itk';
+      d.config.tokenApiHost = 'authproxy.chitipat-kao.workers.dev/sts';
+    }
+  } catch (e) {}
+  // บังคับ "จำบัญชีในเครื่อง" ชัดเจน (default ควรเป็นแบบนี้อยู่แล้ว แต่บางเครื่อง iOS ที่เก็บมีปัญหา)
+  try { firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function () {}); } catch (e) {}
+  // เพิ่งเด้งกลับจากหน้า Google (redirect flow) → ยื่น token ให้ Firebase เลย
+  if (window._oauthToken) {
+    window._diag.tap = window._diag.tap || Date.now();
+    window._diag.token = Date.now();
+    signingIn = true;   // กัน onAuthStateChanged(null) ครั้งแรกทับหน้าจอเป็นปุ่มล็อกอินระหว่างแลก token ยังไม่เสร็จ
+    showLogin('กำลังยืนยันตัวตน...');
+    try {
+      const cred = firebase.auth.GoogleAuthProvider.credential(null, window._oauthToken);
+      firebase.auth().signInWithCredential(cred).catch(err => { signingIn = false; showAuthError(err); });
+    } catch (e) { signingIn = false; showAuthError(e); }
+    window._oauthToken = '';
+  }
+  loadGIS().catch(() => {});   // อุ่นตัวล็อกอิน Google ไว้ก่อนผู้ใช้แตะปุ่ม (ถ้าโหลดไม่ได้ก็มีวิธีเดิมสำรอง)
+  // ตรวจที่เก็บข้อมูลในเครื่อง (ไว้วินิจฉัยเคส "ไม่จำบัญชี") — แสดงผลบรรทัดเล็กใต้ข้อความ login
+  window._stProbe = '';
+  (function storageProbe() {
+    let ls = '✗';
+    try { localStorage.setItem('_t', '1'); ls = localStorage.getItem('_t') === '1' ? '✓' : '✗'; localStorage.removeItem('_t'); } catch (e) {}
+    let idb = 'ไม่ตอบ';
+    const fin = () => { window._stProbe = 'ความจำเครื่อง: iDB ' + idb + ' · LS ' + ls; };
+    if (!window.indexedDB) { idb = isIOSWebKit() ? 'ปิดใช้บนiOS(ตั้งใจ)' : '✗'; fin(); return; }
+    try {
+      const rq = indexedDB.open('_probe', 1);
+      const to = setTimeout(() => { idb = 'ช้า>3วิ'; fin(); }, 3000);
+      rq.onupgradeneeded = () => { rq.result.createObjectStore('s'); };
+      rq.onerror = () => { clearTimeout(to); idb = '✗'; fin(); };
+      rq.onsuccess = () => {
+        try {
+          const db = rq.result, tx = db.transaction('s', 'readwrite');
+          tx.objectStore('s').put('1', 'k');
+          tx.oncomplete = () => { clearTimeout(to); idb = '✓'; db.close(); try { indexedDB.deleteDatabase('_probe'); } catch (e) {} fin(); };
+          tx.onerror = () => { clearTimeout(to); idb = '✗'; fin(); };
+        } catch (e) { clearTimeout(to); idb = '✗'; fin(); }
+      };
+    } catch (e) { idb = '✗'; fin(); }
+    fin();
+  })();
+  showLogin(window._diag && window._diag.token ? 'กำลังยืนยันตัวตน...' : 'กำลังตรวจสอบ...');
+  let authFired = false;
+  // นับวินาทีแยกรายขั้น (เริ่มระบบ → คุยกับ Google → ยืนยันตัวตน) — ชี้ชัดว่าช้าขั้นไหน
+  window._diag = window._diag || {};
+  window._diag.load = Date.now();
+  const bootT0 = window._diag.load;
+  const bootTick = setInterval(function () {
+    if (currentUser) { clearInterval(bootTick); return; }
+    const el = document.getElementById('loginMsg'); if (!el) return;
+    const d = window._diag;
+    let base = null, label = '';
+    if (d.token) { base = d.token; label = 'กำลังยืนยันตัวตน...'; }
+    else if (d.tap) { base = d.tap; label = 'กำลังคุยกับ Google...'; }
+    else if (!authFired) { base = d.load; label = 'กำลังตรวจสอบ...'; }
+    if (!base) return;
+    const s = Math.round((Date.now() - base) / 1000);
+    if (s >= 2 && el.textContent.indexOf('กำลัง') === 0) el.textContent = label + ' ' + s + ' วิ';
+  }, 1000);
+  // สรุปเวลารอบล่าสุด + ร่องรอย session — ไว้โชว์หน้า login ให้วินิจฉัยจากภาพหน้าจอได้
+  const _diagStr = function () {
+    const d = window._diag, f = (a, b) => (a && b && b >= a) ? Math.round((b - a) / 1000) + 'วิ' : '-';
+    return 'เริ่มระบบ ' + f(d.load, d.init) + ' · Google ' + f(d.tap, d.token) + ' · ยืนยัน ' + f(d.token, d.signed);
+  };
+  const _loginFootnote = function () {
+    let s = '';
+    if (window._oauthError) s += '\n⚠️ ล็อกอินถูกยกเลิก (' + esc2(window._oauthError) + ') — แตะปุ่มเข้าสู่ระบบอีกครั้ง';
+    if (window._oauthStateLost) s += '\n⚠️ ล็อกอินเด้งกลับมาแต่รหัสยืนยันหายกลางทาง — แตะปุ่มล็อกอินอีกครั้ง';
+    try {
+      const lu = JSON.parse(localStorage.getItem('_lastUser') || 'null');
+      if (lu && lu.e) {
+        const t = new Date(lu.t);
+        s += '\n⚠️ เคยล็อกอิน (' + lu.e.split('@')[0] + ' ' + t.getHours() + ':' + String(t.getMinutes()).padStart(2, '0') + ') แต่เครื่องไม่จำ session';
+      }
+      const pd = localStorage.getItem('_loginDiag');
+      if (pd) s += '\nรอบก่อน: ' + pd;
+    } catch (e) {}
+    if (window._stProbe) s += '\n' + window._stProbe;
+    s += '\n' + APP_VER;
+    return s;
+  };
+  // เรียก getRedirectResult เฉพาะตอน "เพิ่งกลับจากหน้า Google แบบ redirect" จริงๆ (Android เท่านั้น)
+  // ธงค้างบน iOS = ของเก่าจากช่วงล็อกอินพัง — ถ้าปล่อยไว้ Firebase จะรอ iframe ข้ามโดเมนที่ Safari บล็อก ~30 วิ ทำให้ตรวจสอบช้ามาก
+  let pendingRedirect = false;
+  try {
+    const staleKeys = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k && k.indexOf('firebase:pendingRedirect') === 0) staleKeys.push(k);
+    }
+    if (isIOSWebKit()) staleKeys.forEach(k => sessionStorage.removeItem(k));   // iOS ไม่ใช้ redirect แล้ว → ธงคือขยะ
+    else pendingRedirect = staleKeys.length > 0;
+  } catch (e) {}
+  if (pendingRedirect) firebase.auth().getRedirectResult().catch(showAuthError);   // แสดงสาเหตุถ้า redirect ล้มเหลว
+  firebase.auth().onAuthStateChanged(user => {
+    authFired = true;
+    if (!window._diag.init) window._diag.init = Date.now();
+    if (user && isAllowed(user.email)) {
+      signingIn = false;
+      window._diag.signed = Date.now();
+      try {   // ฝากร่องรอยไว้พิสูจน์ว่า session ถูกบันทึก — ถ้ารอบหน้าไม่จำ จะรู้ว่าหายที่ไหน
+        localStorage.setItem('_lastUser', JSON.stringify({ e: user.email, t: Date.now() }));
+        localStorage.setItem('_loginDiag', _diagStr());
+      } catch (e) {}
+      currentUser = user;
+      role = isOwnerEmail(user.email) ? 'owner' : 'employee';
+      document.body.classList.toggle('role-employee', role === 'employee');
+      const ue = document.getElementById('userEmail'); if (ue) ue.textContent = user.email + (role === 'employee' ? ' (พนักงาน)' : '');
+      hideLogin();
+      startApp(ac.room);
+    } else if (user) {
+      signingIn = false;   // แลก token เสร็จแล้ว (แต่ไม่มีสิทธิ์) — ปลดธง ไม่งั้น null-branch รอบหน้าจะไม่วาดหน้า login
+      showLogin('บัญชี ' + user.email + ' ไม่มีสิทธิ์เข้าถึงระบบนี้\nติดต่อเจ้าของระบบเพื่อขอสิทธิ์', user.email);
+    } else if (isInAppBrowser()) {
+      showLogin('กรุณาเปิดในเบราว์เซอร์ Safari หรือ Chrome\n(กดปุ่ม ••• มุมขวาบน แล้วเลือก "เปิดในเบราว์เซอร์")\nเพราะ Google ล็อกอินในแอป LINE/Facebook ไม่ได้');
+    } else if (!signingIn) {   // ยังแลก token อยู่ → คงข้อความ "กำลังยืนยันตัวตน" ไว้ ไม่เด้งปุ่มล็อกอิน
+      showLogin('เข้าสู่ระบบด้วย Google เพื่อใช้งาน' + _loginFootnote());
+    }
+  });
+  // watchdog: ถ้า auth ค้าง (iOS Safari บล็อก iframe ข้ามโดเมน) ไม่ให้ค้างที่ "กำลังตรวจสอบ"
+  setTimeout(function(){
+    if (authFired || currentUser || signingIn) return;
+    if (isInAppBrowser()) return;   // มีข้อความ in-app แยกแล้ว
+    showLogin('เข้าสู่ระบบด้วย Google เพื่อใช้งาน' + _loginFootnote());
+  }, 5000);
+})();
+</script>
+</body>
+</html>
