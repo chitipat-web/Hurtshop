@@ -443,9 +443,97 @@
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.13); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
   ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.22); background-clip: padding-box; }
   @media (prefers-reduced-motion: reduce) { .summary::after { animation: none; } }
+
+  /* ═══════════ อัปเกรดอลังการ: aurora / การ์ด 3D / กราฟ / เป้ายอด / heatmap / confetti ═══════════ */
+  /* พื้นหลัง aurora ไหลช้าๆ (CSS ล้วน ไม่กินแบต) */
+  .aurora { position: fixed; inset: -20%; z-index: -1; pointer-events: none; filter: blur(60px) saturate(140%); opacity: .5; }
+  .aurora i { position: absolute; display: block; border-radius: 50%; mix-blend-mode: screen; }
+  .aurora i:nth-child(1) { width: 55vmax; height: 55vmax; left: -12vmax; top: -14vmax; background: radial-gradient(circle at 30% 30%, rgba(0,164,228,.5), transparent 60%); animation: au1 26s ease-in-out infinite alternate; }
+  .aurora i:nth-child(2) { width: 48vmax; height: 48vmax; right: -16vmax; top: 8vmax; background: radial-gradient(circle at 60% 40%, rgba(76,201,240,.36), transparent 62%); animation: au2 32s ease-in-out infinite alternate; }
+  .aurora i:nth-child(3) { width: 60vmax; height: 60vmax; left: 16vmax; bottom: -24vmax; background: radial-gradient(circle at 50% 60%, rgba(0,106,163,.45), transparent 60%); animation: au3 38s ease-in-out infinite alternate; }
+  @keyframes au1 { to { transform: translate(9vmax, 7vmax) scale(1.15) rotate(20deg); } }
+  @keyframes au2 { to { transform: translate(-10vmax, 9vmax) scale(.92); } }
+  @keyframes au3 { to { transform: translate(-7vmax, -9vmax) scale(1.12); } }
+  @media (prefers-reduced-motion: reduce) { .aurora i { animation: none; } }
+
+  /* การ์ดบัญชีเอียง 3D + แสง hologram (เลื่อนตาม gyro/นิ้ว) */
+  .top-row { perspective: 900px; }
+  .summary { transform-style: preserve-3d; will-change: transform; }
+  .summary .holo {
+    position: absolute; inset: 0; z-index: 2; pointer-events: none; border-radius: inherit; opacity: .55;
+    background: linear-gradient(115deg, transparent 32%, rgba(140,225,255,.28) 44%, rgba(255,170,230,.20) 50%, rgba(140,255,210,.22) 56%, transparent 68%);
+    background-size: 240% 100%; background-position: var(--hx, 60%) 0; mix-blend-mode: screen;
+  }
+
+  /* การ์ดเป้ายอดเดือน + progress ring */
+  .goal-card { display: flex; align-items: center; gap: 14px; background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border: 1px solid var(--glass-bd); border-radius: 16px; padding: 12px 16px; margin: -4px 0 16px; box-shadow: var(--glass-sh), var(--inset-hi); cursor: pointer; }
+  .goal-ring { position: relative; width: 56px; height: 56px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  .goal-ring svg { position: absolute; inset: 0; width: 56px; height: 56px; transform: rotate(-90deg); }
+  .goal-ring .gr-bg { fill: none; stroke: rgba(255,255,255,.12); stroke-width: 6; }
+  .goal-ring .gr-fg { fill: none; stroke: url(#goalGrad); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 1.1s cubic-bezier(.22,1,.36,1); }
+  .goal-ring b { position: relative; font-size: 12.5px; font-weight: 700; color: var(--accent); }
+  .goal-info { flex: 1; min-width: 0; }
+  .goal-info .gt { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+  .goal-info .gv { font-size: 16px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .goal-info .gs { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .goal-edit { color: var(--muted); font-size: 16px; flex-shrink: 0; }
+
+  /* กราฟหน้าแรก (เส้น 7 วัน + โดนัทธนาคาร) */
+  .hcharts { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
+  @media (min-width: 768px) { .hcharts { grid-template-columns: 3fr 2fr; } }
+  .hc-card { background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border: 1px solid var(--glass-bd); border-radius: 16px; padding: 14px 16px 10px; box-shadow: var(--glass-sh), var(--inset-hi); overflow: hidden; min-width: 0; }
+  .hc-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px; display: flex; justify-content: space-between; gap: 8px; }
+  .hc-title b { color: var(--accent); letter-spacing: 0; font-variant-numeric: tabular-nums; }
+  .hc-line { display: block; width: 100%; height: auto; }
+  .hc-line path.area { fill: url(#hcArea); }
+  .hc-line path.stroke { fill: none; stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .hc-line.animate path.stroke { stroke-dasharray: var(--len); stroke-dashoffset: var(--len); animation: hcdash 1.1s cubic-bezier(.4,0,.2,1) .1s forwards; }
+  .hc-line.animate path.area { opacity: 0; animation: hcfade .8s ease .55s forwards; }
+  .hc-line.animate circle { opacity: 0; animation: hcfade .5s ease .8s forwards; }
+  @keyframes hcdash { to { stroke-dashoffset: 0; } }
+  @keyframes hcfade { to { opacity: 1; } }
+  .hc-line circle { fill: #0b1620; stroke: var(--accent); stroke-width: 2; }
+  .hc-days { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); padding: 2px 4px 4px; }
+  .donut-wrap { display: flex; align-items: center; gap: 14px; padding-bottom: 4px; }
+  .donut-wrap svg { width: 110px; height: 110px; flex-shrink: 0; transform: rotate(-90deg); animation: hcfade .7s ease backwards; }
+  .donut-wrap svg circle { fill: none; stroke-width: 14; }
+  .dlegend { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+  .dlegend div { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); min-width: 0; }
+  .dlegend div span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dlegend i { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+  .dlegend b { margin-left: auto; color: var(--text); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+  /* heatmap ปฏิทิน (หน้ารายงาน) */
+  .hm-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .hm-grid .hm-h { text-align: center; font-size: 10px; color: var(--muted); padding: 2px 0; }
+  .hm-cell { aspect-ratio: 1; border-radius: 7px; background: rgba(255,255,255,.05); display: flex; align-items: center; justify-content: center; font-size: 10.5px; color: var(--muted); }
+  .hm-cell.l1 { background: rgba(0,164,228,.18); color: #cfeef7; }
+  .hm-cell.l2 { background: rgba(0,164,228,.36); color: #eaf8ff; }
+  .hm-cell.l3 { background: rgba(0,164,228,.60); color: #fff; }
+  .hm-cell.l4 { background: rgba(0,164,228,.92); color: #fff; font-weight: 700; }
+  .hm-cell.today { outline: 2px solid var(--amber); outline-offset: 1px; }
+  .hm-cell.blank { background: transparent; }
+  /* เทียบเดือนนี้กับเดือนก่อน */
+  .cmp-row { margin-bottom: 10px; }
+  .cmp-row .cl { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .cmp-row .cl b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .cmp-bar { height: 10px; border-radius: 999px; background: rgba(255,255,255,.07); overflow: hidden; }
+  .cmp-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--cyan), var(--accent)); }
+  .cmp-bar.prev i { background: rgba(147,172,186,.55); }
+  .cmp-badge { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 8px; padding: 2px 8px; margin-left: 6px; vertical-align: 1px; }
+  .cmp-badge.up { background: rgba(34,197,94,.15); color: #86efac; }
+  .cmp-badge.down { background: rgba(239,68,68,.15); color: #fca5a5; }
+  @media print { .hm-cell, .cmp-bar, .cmp-bar i { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+
+  /* confetti + รายการเด้งเข้าทีละใบ */
+  #fx { position: fixed; inset: 0; z-index: 260; pointer-events: none; }
+  .pop-in { animation: itemin .38s cubic-bezier(.22,1,.36,1) backwards; }
+  @keyframes itemin { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
 </style>
 </head>
 <body>
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+<canvas id="fx" aria-hidden="true"></canvas>
 <div id="splash"><video id="introVid" muted playsinline autoplay preload="auto" src="intro.mp4"></video></div>
 <script>
 (function(){
@@ -477,6 +565,7 @@
 
   <div class="top-row">
   <div class="summary">
+    <span class="holo" aria-hidden="true"></span>
     <div class="card-top"><span class="chip"></span> บัญชีร้าน · HURT SHOP</div>
     <div class="label" id="sumLabel">ยอดคงเหลือ</div>
     <div class="total"><span id="totalAmt">0</span> <small>บาท</small></div>
@@ -491,6 +580,13 @@
     <div class="stat"><span>เดือนนี้</span><b id="thisMonth">0 ฿</b></div>
     <div class="stat"><span>วันนี้</span><b id="today">0 ฿</b></div>
   </div>
+  </div>
+
+  <div class="goal-card" id="goalCard" style="display:none" onclick="setGoal()"></div>
+
+  <div class="hcharts" id="homeCharts" style="display:none">
+    <div class="hc-card"><div class="hc-title"><span>รายรับ 7 วันล่าสุด</span><b id="hc7sum"></b></div><div id="hcLine"></div></div>
+    <div class="hc-card"><div class="hc-title"><span>แยกตามธนาคาร · 30 วัน</span></div><div class="donut-wrap"><div id="hcDonut"></div><div class="dlegend" id="hcLegend"></div></div></div>
   </div>
 
   <div class="seg" id="rangeSeg">
@@ -721,7 +817,7 @@ window._oauthError = '';
   } catch (e) {}
 })();
 
-const APP_VER = 'v7.24-2';   // โชว์บนหน้า login — เช็คจากภาพหน้าจอได้ว่าเครื่องรันโค้ดรุ่นไหน (กันงงเรื่องแคช)
+const APP_VER = 'v7.25';   // โชว์บนหน้า login — เช็คจากภาพหน้าจอได้ว่าเครื่องรันโค้ดรุ่นไหน (กันงงเรื่องแคช)
 const LKEY = 'bank_transfers_v1';      // local fallback store
 const CFGKEY = 'bank_fb_config';        // saved firebase config (JSON string)
 const ROOMKEY = 'bank_room';            // saved room code
@@ -765,7 +861,7 @@ function rangeLabel(){
   if(dateRange.indexOf('m:')===0) return 'ยอดลูกค้า '+monthLabel(dateRange.slice(2));
   return 'ยอดลูกค้าทั้งหมด';
 }
-function setRange(r){ dateRange=r; render(); }
+function setRange(r){ dateRange=r; _staggerNext=true; vib(8); render(); }
 
 /* ---------- helpers ---------- */
 function fmt(n) { return Number(n).toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
@@ -900,6 +996,12 @@ function connectRT(cfg, room) {
       pendingData = Object.values(val).filter(x => x && typeof x === 'object' && x.id);
       renderPending();
     }, () => { pendingData = []; renderPending(); });
+
+    // เป้ายอดเดือน sync ทุกเครื่อง — ถ้า rules ยังไม่เปิด path นี้ จะใช้ค่าที่จำไว้ในเครื่องแทนเงียบๆ
+    db.ref('rooms/' + room + '/meta/goal').on('value', snap => {
+      const v = Number(snap.val());
+      if (isFinite(v) && v >= 0) { goalAmt = v; try { localStorage.setItem(GOALKEY, String(v)); } catch (e) {} renderGoal(); }
+    }, () => {});
   } catch (e) {
     setSync('err', 'config ไม่ถูกต้อง');
     rtOn = false;
@@ -946,6 +1048,7 @@ function disconnectRT() {
 /* ---------- แถบล่าง (tab bar) ---------- */
 function goHome(){ window.scrollTo({ top: 0, behavior: 'smooth' }); }
 function setTab(el){
+  vib(8);   // haptic เบาๆ ตอนสลับแท็บ (Android; iOS ข้ามเงียบๆ)
   document.querySelectorAll('.modal.show, .asst-modal.show').forEach(m => m.classList.remove('show'));   // ปิดหน้าที่เปิดอยู่ก่อน (กันซ้อน)
   document.querySelectorAll('.tabbar .tab').forEach(t => t.classList.remove('active'));
   if (el) el.classList.add('active');
@@ -1109,6 +1212,7 @@ async function save() {
     if (sameModal) { btn.disabled = false; btn.textContent = 'บันทึก'; }
     if (r.ok) {
       if (imgAtSave && r.record && r.record.id) putSlipImage(r.record.id, imgAtSave);   // เก็บรูปสลิป (ใช้รูปที่จับไว้ ไม่ใช่ global ที่อาจถูกทับ/ล้าง)
+      celebrate();   // 🎉 สลิปผ่านการยืนยันธนาคาร — confetti + เสียงติ๊ง
       if (sameModal) { setSlipStatus('ok', '✅ บันทึกแล้ว: ' + esc2(r.record.name) + ' ยอด ' + fmt(r.record.amount) + ' ฿'); setTimeout(() => { if (genAtSave === modalGen) closeModal(); }, 800); }
       return;
     }
@@ -1451,6 +1555,7 @@ function approvePending(id) {
     approvedBy: (currentUser && currentUser.email) || '', submittedBy: it.submittedBy || '',
     hasImg: !!it.hasImg
   });   // รูปสลิปอยู่ที่ slips/{id} แล้ว carry over อัตโนมัติ (id เดียวกัน)
+  celebrate();   // 🎉 เงินเข้าได้รับการอนุมัติ
   const pref = pendingRef(); if (pref) pref.child(it.id).remove().catch(() => {});
 }
 function rejectPending(id) {
@@ -1744,19 +1849,23 @@ function render() {
   const sumIn = rows.filter(x => !isOut(x)).reduce((s,x) => s + amt(x), 0);
   const sumOut = rows.filter(isOut).reduce((s,x) => s + amt(x), 0);
   const totalEl = document.getElementById('totalAmt');
-  totalEl.textContent = (net < 0 ? '−' : '') + fmt(Math.abs(net));
+  animateNum(totalEl, Math.abs(net), v => (net < 0 ? '−' : '') + fmt(v));
   totalEl.parentElement.classList.toggle('neg', net < 0);
-  document.getElementById('sumIn').textContent = fmt(sumIn);
-  document.getElementById('sumOut').textContent = sumOut ? '−' + fmt(sumOut) : '0';
-  document.getElementById('count').textContent = rows.length;
+  animateNum(document.getElementById('sumIn'), sumIn, fmt);
+  animateNum(document.getElementById('sumOut'), sumOut, v => v ? '−' + fmt(v) : '0');
+  animateNum(document.getElementById('count'), rows.length, v => String(Math.round(v)));
   document.getElementById('sumLabel').textContent = rangeLabel();
 
   const tm = todayStr().slice(0,7), td = todayStr();
-  document.getElementById('thisMonth').textContent = fmtShort(all.filter(x => x.date.slice(0,7) === tm).reduce((s,x) => s + signedAmt(x), 0));
-  document.getElementById('today').textContent = fmtShort(all.filter(x => x.date === td).reduce((s,x) => s + signedAmt(x), 0));
+  animateNum(document.getElementById('thisMonth'), all.filter(x => x.date.slice(0,7) === tm).reduce((s,x) => s + signedAmt(x), 0), fmtShort);
+  animateNum(document.getElementById('today'), all.filter(x => x.date === td).reduce((s,x) => s + signedAmt(x), 0), fmtShort);
+
+  buildHomeCharts(all);
+  renderGoal();
 
   const list = document.getElementById('list');
   if (!rows.length) {
+    _staggerNext = false;
     list.innerHTML = '<div class="empty"><div class="ic">📭</div><p>ยังไม่มีรายการ<br>กดปุ่มด้านล่าง เพิ่มยอด + แนบสลิป</p></div>';
     return;
   }
@@ -1779,6 +1888,7 @@ function render() {
           ${it.note ? `<div class="note">${esc(it.note)}</div>` : ''}
           ${out ? `<div class="slip out-tag">💸 โอนออก</div>` : (it.slipVerified ? `<div class="slip has">🛡️ ยืนยันธนาคารแล้ว</div>` : ((it.slipRef || it.slipHash) ? `<div class="slip has">📎 มีสลิป${it.slipRef ? ' · QR ✓' : ''}</div>` : ''))}
           ${(it.hasImg || it.slipVerified) ? `<button class="slipview" onclick="event.stopPropagation(); openSlip('${eid}')">👁️ ดูสลิป</button>` : ''}
+          ${!out ? `<button class="slipview" onclick="event.stopPropagation(); makeReceipt('${eid}')">🧾 ใบยืนยัน</button>` : ''}
         </div>
         <div class="amt">
           <b class="${out ? 'amt-out' : ''}">${out ? '−' : '+'}${fmt(amt(it))}</b>
@@ -1787,9 +1897,13 @@ function render() {
       </div>`;
   });
   list.innerHTML = html;
+  if (_staggerNext) {   // เปลี่ยนช่วงเวลา/เดือน → รายการเด้งเข้าทีละใบ
+    _staggerNext = false;
+    [...list.children].slice(0, 16).forEach((el, i) => { el.classList.add('pop-in'); el.style.animationDelay = (i * 35) + 'ms'; });
+  }
 }
 
-document.getElementById('filterMonth').addEventListener('change', function(){ dateRange = this.value === 'all' ? 'all' : ('m:' + this.value); render(); });
+document.getElementById('filterMonth').addEventListener('change', function(){ dateRange = this.value === 'all' ? 'all' : ('m:' + this.value); _staggerNext = true; render(); });
 document.getElementById('search').addEventListener('input', render);
 document.getElementById('report').addEventListener('click', e => { if (e.target.id === 'report') closeReport(); });
 
@@ -1820,15 +1934,334 @@ function buildReport(){
   const monBars=mons.map(k=>{ const v=byMonth[k]||0; const h=Math.round(v/monMax*100); return `<div class="bar-col"><div class="cbar" style="height:${h}%" title="${fmt(v)}"></div><em>${MON_TH[Number(k.slice(5,7))-1]}</em></div>`; }).join('');
   const tops=Object.entries(byCust).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const topHTML = tops.length ? tops.map(([n,v])=>`<div class="toprow"><span>${esc(n)}</span><b>${fmt(v)} ฿</b></div>`).join('') : '<div class="rsub">ยังไม่มีข้อมูล</div>';
+  // เทียบเดือนนี้กับเดือนก่อน (รับเข้า)
+  const pmKey=(function(){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); })();
+  const curIn=byMonth[tm]||0, prevIn=byMonth[pmKey]||0;
+  const cmpMax=Math.max(1,curIn,prevIn);
+  const pctCh = prevIn>0 ? Math.round((curIn-prevIn)/prevIn*100) : null;
+  const cmpBadge = (pctCh===null) ? '' : ('<span class="cmp-badge '+(pctCh>=0?'up':'down')+'">'+(pctCh>=0?'▲':'▼')+' '+Math.abs(pctCh)+'%</span>');
+  const cmpHTML =
+    '<div class="cmp-row"><div class="cl"><span>'+monthLabel(tm)+'</span><b>'+fmt(curIn)+' ฿</b></div><div class="cmp-bar"><i style="width:'+Math.round(curIn/cmpMax*100)+'%"></i></div></div>'+
+    '<div class="cmp-row"><div class="cl"><span>'+monthLabel(pmKey)+'</span><b>'+fmt(prevIn)+' ฿</b></div><div class="cmp-bar prev"><i style="width:'+Math.round(prevIn/cmpMax*100)+'%"></i></div></div>';
+  // heatmap ปฏิทินรายรับเดือนนี้ (วันไหนขายดี สีเข้ม)
+  const hmNow=new Date(), hmY=hmNow.getFullYear(), hmM=hmNow.getMonth();
+  const hmDim=new Date(hmY,hmM+1,0).getDate(), hmOff=new Date(hmY,hmM,1).getDay();
+  let hmMax=1; for(let d=1;d<=hmDim;d++){ const v=byDay[localDateStr(new Date(hmY,hmM,d))]||0; if(v>hmMax) hmMax=v; }
+  let hmHTML='<div class="hm-grid">'+['อา','จ','อ','พ','พฤ','ศ','ส'].map(h=>'<div class="hm-h">'+h+'</div>').join('');
+  for(let i=0;i<hmOff;i++) hmHTML+='<div class="hm-cell blank"></div>';
+  for(let d=1;d<=hmDim;d++){
+    const ds=localDateStr(new Date(hmY,hmM,d)); const v=byDay[ds]||0;
+    const lv=v<=0?0:Math.min(4,Math.max(1,Math.ceil(v/hmMax*4)));
+    hmHTML+='<div class="hm-cell'+(lv?' l'+lv:'')+(ds===td?' today':'')+'" title="'+fmt(v)+' ฿">'+d+'</div>';
+  }
+  hmHTML+='</div>';
   const now=new Date();
   document.getElementById('reportBody').innerHTML =
     '<h2>📊 รายงานสรุป HURT SHOP</h2>'+
     '<div class="rsub">ออก ณ '+now.getDate()+' '+MON_TH[now.getMonth()]+' '+(now.getFullYear()+543)+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+' น.</div>'+
     '<div class="rstat"><div><span>ยอดคงเหลือ</span><b>'+(grand<0?'−':'')+fmt(Math.abs(grand))+' ฿</b></div><div><span>รับเข้าทั้งหมด</span><b>'+fmt(grandIn)+' ฿</b></div><div><span>จ่ายออกทั้งหมด</span><b>'+fmt(grandOut)+' ฿</b></div></div>'+
     '<div class="rsub" style="margin-top:6px">เดือนนี้ (สุทธิ) '+(monthTotal<0?'−':'')+fmt(Math.abs(monthTotal))+' ฿ · วันนี้ (สุทธิ) '+(todayTotal<0?'−':'')+fmt(Math.abs(todayTotal))+' ฿</div>'+
+    '<h3>เดือนนี้ vs เดือนก่อน (รับเข้า) '+cmpBadge+'</h3>'+cmpHTML+
+    '<h3>🗓️ ปฏิทินรายรับ '+monthLabel(tm)+'</h3>'+hmHTML+
     '<h3>ยอดรับเข้ารายวัน (14 วันล่าสุด)</h3><div class="chart">'+dayBars+'</div>'+
     '<h3>ยอดรับเข้ารายเดือน (6 เดือนล่าสุด)</h3><div class="chart">'+monBars+'</div>'+
     '<h3>ลูกค้าจ่ายเยอะสุด (Top 5)</h3><div class="toplist">'+topHTML+'</div>';
+}
+
+/* ═══════════ อัปเกรดอลังการ: count-up / กราฟหน้าแรก / เป้ายอด / การ์ด 3D / confetti / ใบยืนยัน ═══════════ */
+const _reduceMotion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+let _staggerNext = false;   // ธง: render รอบถัดไปให้รายการเด้งเข้าทีละใบ
+
+/* ---------- ตัวเลขวิ่ง (count-up) ---------- */
+function animateNum(el, target, format) {
+  if (!el) return;
+  target = Number(target) || 0;
+  const from = (typeof el._numCur === 'number' && isFinite(el._numCur)) ? el._numCur : 0;
+  if (el._numRaf) { cancelAnimationFrame(el._numRaf); el._numRaf = null; }
+  if (_reduceMotion || document.hidden || from === target) { el._numCur = target; el.textContent = format(target); return; }
+  const t0 = performance.now(), dur = 700;
+  const isInt = Number.isInteger(target) && Number.isInteger(from);
+  const step = t => {
+    const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);   // easeOutCubic
+    let v = from + (target - from) * e;
+    v = isInt ? Math.round(v) : Math.round(v * 100) / 100;
+    if (p >= 1) v = target;
+    el._numCur = v;
+    el.textContent = format(v);
+    el._numRaf = (p < 1) ? requestAnimationFrame(step) : null;
+  };
+  el._numRaf = requestAnimationFrame(step);
+}
+
+/* ---------- haptic + เสียงติ๊ง + confetti ---------- */
+function vib(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+let _ac = null;   // AudioContext ต้องเกิด/ปลุกจาก gesture ผู้ใช้ (นโยบาย iOS/Chrome) — เกาะการแตะครั้งแรกไว้
+document.addEventListener('pointerdown', function () {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!_ac && AC) _ac = new AC();
+    if (_ac && _ac.state === 'suspended') _ac.resume().catch(() => {});
+  } catch (e) {}
+}, { capture: true, passive: true });
+function ting() {
+  if (!_ac || _ac.state !== 'running') return;
+  try {
+    const t = _ac.currentTime + 0.02;
+    [[988, 0], [1319, .09], [1568, .18]].forEach(fr => {   // B5→E6→G6 arpeggio สั้นๆ
+      const o = _ac.createOscillator(), g = _ac.createGain();
+      o.type = 'sine'; o.frequency.value = fr[0];
+      g.gain.setValueAtTime(0.0001, t + fr[1]);
+      g.gain.exponentialRampToValueAtTime(0.2, t + fr[1] + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + fr[1] + 0.6);
+      o.connect(g); g.connect(_ac.destination);
+      o.start(t + fr[1]); o.stop(t + fr[1] + 0.65);
+    });
+  } catch (e) {}
+}
+const _fxCv = document.getElementById('fx'), _fx = _fxCv ? _fxCv.getContext('2d') : null;
+let _fxP = [], _fxRaf = null;
+function confettiBurst() {
+  if (!_fx || _reduceMotion) return;
+  _fxCv.width = innerWidth; _fxCv.height = innerHeight;
+  const colors = ['#00a4e4', '#4cc9f0', '#22c55e', '#f59e0b', '#f472b6', '#ffffff'];
+  for (let i = 0; i < 140; i++) {
+    const a = Math.random() * Math.PI * 2, sp = 4 + Math.random() * 9;
+    _fxP.push({ x: innerWidth / 2, y: innerHeight * 0.35,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 3,
+      w: 5 + Math.random() * 5, h: 3 + Math.random() * 4,
+      r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.3,
+      c: colors[i % colors.length], life: 90 + Math.random() * 50 });
+  }
+  if (!_fxRaf) _fxRaf = requestAnimationFrame(_fxTick);
+}
+function _fxTick() {
+  _fx.clearRect(0, 0, _fxCv.width, _fxCv.height);
+  _fxP = _fxP.filter(p => p.life > 0 && p.y < _fxCv.height + 30);
+  _fxP.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.22; p.vx *= 0.99; p.r += p.vr; p.life--;
+    _fx.save(); _fx.translate(p.x, p.y); _fx.rotate(p.r);
+    _fx.globalAlpha = Math.min(1, p.life / 40);
+    _fx.fillStyle = p.c; _fx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    _fx.restore();
+  });
+  if (_fxP.length) _fxRaf = requestAnimationFrame(_fxTick);
+  else { _fxRaf = null; _fx.clearRect(0, 0, _fxCv.width, _fxCv.height); }
+}
+function celebrate() { confettiBurst(); ting(); vib([16, 70, 22]); }
+
+/* ---------- เป้ายอดเดือน + progress ring ---------- */
+const GOALKEY = 'bank_goal_month';
+let goalAmt = (function () { const v = Number(localStorage.getItem(GOALKEY)); return (isFinite(v) && v > 0) ? v : 0; })();
+function setGoal() {
+  if (role !== 'owner') return;
+  const input = prompt('🎯 ตั้งเป้ายอดรับเข้าต่อเดือน (บาท)\nใส่ 0 = ปิดเป้า', goalAmt ? String(goalAmt) : '');
+  if (input === null) return;
+  const v = parseFloat(String(input).replace(/[,\s]/g, ''));
+  if (!isFinite(v) || v < 0) { alert('ตัวเลขไม่ถูกต้อง'); return; }
+  goalAmt = v;
+  try { localStorage.setItem(GOALKEY, String(v)); } catch (e) {}
+  try { if (rtOn && dbRef && dbRef.parent) dbRef.parent.child('meta/goal').set(v).catch(() => {}); } catch (e) {}   // sync ทุกเครื่อง (ถ้า rules เปิด)
+  vib(10);
+  renderGoal();
+}
+function renderGoal() {
+  const box = document.getElementById('goalCard');
+  if (!box) return;
+  const tm = todayStr().slice(0, 7);
+  const got = data.filter(x => x && !isOut(x) && String(x.date || '').slice(0, 7) === tm).reduce((s, x) => s + amt(x), 0);
+  if (!goalAmt) {
+    if (role !== 'owner') { box.style.display = 'none'; return; }
+    box.style.display = 'flex';
+    box.innerHTML = '<div class="goal-ring">🎯</div><div class="goal-info"><div class="gt">เป้ายอดเดือนนี้</div><div class="gv">แตะเพื่อตั้งเป้า</div><div class="gs">จะมีวงแหวนวิ่งบอกความคืบหน้าให้ทุกวัน</div></div><div class="goal-edit">›</div>';
+    return;
+  }
+  const pct = Math.round(got / goalAmt * 100);
+  const C = 2 * Math.PI * 25;
+  const off = C * (1 - Math.min(1, got / goalAmt));
+  box.style.display = 'flex';
+  box.innerHTML =
+    '<div class="goal-ring"><svg viewBox="0 0 60 60">' +
+    '<defs><linearGradient id="goalGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4cc9f0"/><stop offset="1" stop-color="#00a4e4"/></linearGradient></defs>' +
+    '<circle class="gr-bg" cx="30" cy="30" r="25"/>' +
+    '<circle class="gr-fg" cx="30" cy="30" r="25" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + C.toFixed(1) + '"/>' +
+    '</svg><b>' + Math.min(999, pct) + '%</b></div>' +
+    '<div class="goal-info"><div class="gt">เป้ายอดเดือนนี้ · ' + fmt(goalAmt) + ' ฿</div>' +
+    '<div class="gv">' + fmt(got) + ' ฿</div>' +
+    '<div class="gs">' + (pct >= 100 ? '🎉 ทะลุเป้าแล้ว เก่งมาก!' : 'อีก ' + fmt(Math.max(0, goalAmt - got)) + ' ฿ ถึงเป้า') + '</div></div>' +
+    (role === 'owner' ? '<div class="goal-edit">✎</div>' : '');
+  requestAnimationFrame(() => requestAnimationFrame(() => {   // ให้เบราว์เซอร์วาดค่าเริ่มก่อน ค่อยเลื่อน → ring วิ่ง
+    const fg = box.querySelector('.gr-fg'); if (fg) fg.style.strokeDashoffset = off.toFixed(1);
+  }));
+}
+
+/* ---------- กราฟหน้าแรก: เส้นรายรับ 7 วัน + โดนัทธนาคาร 30 วัน ---------- */
+let _hcSig = '';
+function buildHomeCharts(all) {
+  const box = document.getElementById('homeCharts');
+  if (!box) return;
+  const inc = all.filter(x => !isOut(x));
+  if (!inc.length) { box.style.display = 'none'; _hcSig = ''; return; }
+  const days = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push(localDateStr(d)); }
+  const byDay = {}; inc.forEach(x => { byDay[x.date] = (byDay[x.date] || 0) + amt(x); });
+  const vals = days.map(d => byDay[d] || 0);
+  const cut = (function () { const d = new Date(); d.setDate(d.getDate() - 29); return localDateStr(d); })();
+  const byBank = {};
+  inc.forEach(x => { if (x.date >= cut) { const b = x.bank || 'ไม่ระบุ'; byBank[b] = (byBank[b] || 0) + amt(x); } });
+  const banks = Object.entries(byBank).sort((a, b) => b[1] - a[1]);
+  const sig = JSON.stringify([vals, banks]);
+  if (sig === _hcSig) { box.style.display = ''; return; }   // ข้อมูลไม่เปลี่ยน (เช่น พิมพ์ค้นหา) — ไม่วาดซ้ำให้อนิเมชันเด้ง
+  _hcSig = sig;
+  box.style.display = '';
+  document.getElementById('hc7sum').textContent = fmtShort(vals.reduce((s, v) => s + v, 0));
+  // เส้น + พื้นที่ใต้กราฟ (SVG วาดเอง เส้นค่อยๆ ลาก)
+  const W = 320, H = 96, P = 10;
+  const mx = Math.max(1, ...vals);
+  const pts = vals.map((v, i) => [P + i * (W - 2 * P) / 6, H - P - (v / mx) * (H - 2 * P - 8)]);
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  let len = 0; for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+  const area = line + ' L' + pts[6][0].toFixed(1) + ' ' + (H - 2) + ' L' + pts[0][0].toFixed(1) + ' ' + (H - 2) + ' Z';
+  const dots = pts.map((p, i) => vals[i] > 0 ? '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3"/>' : '').join('');
+  document.getElementById('hcLine').innerHTML =
+    '<svg class="hc-line' + (_reduceMotion ? '' : ' animate') + '" viewBox="0 0 ' + W + ' ' + H + '" style="--len:' + Math.ceil(len + 10) + '">' +
+    '<defs><linearGradient id="hcArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(0,164,228,.38)"/><stop offset="1" stop-color="rgba(0,164,228,0)"/></linearGradient></defs>' +
+    '<path class="area" d="' + area + '"/><path class="stroke" d="' + line + '"/>' + dots + '</svg>' +
+    '<div class="hc-days">' + days.map(d => '<span>' + Number(d.slice(8)) + '</span>').join('') + '</div>';
+  // โดนัทแยกธนาคาร (top 4 + อื่นๆ)
+  const dEl = document.getElementById('hcDonut'), lEl = document.getElementById('hcLegend');
+  if (!banks.length) { dEl.innerHTML = ''; lEl.innerHTML = '<div>ยังไม่มีรายการใน 30 วันล่าสุด</div>'; return; }
+  const top = banks.slice(0, 4);
+  const rest = banks.slice(4).reduce((s, b) => s + b[1], 0);
+  if (rest > 0) top.push(['อื่นๆ', rest]);
+  const tot = top.reduce((s, b) => s + b[1], 0) || 1;
+  const DC = ['#00a4e4', '#22c55e', '#f59e0b', '#a78bfa', '#64748b'];
+  const R = 40, CC = 2 * Math.PI * R;
+  let acc = 0, segs = '';
+  top.forEach((b, i) => {
+    const fr = b[1] / tot;
+    segs += '<circle cx="55" cy="55" r="' + R + '" stroke="' + DC[i] + '" stroke-dasharray="' + Math.max(0.5, fr * CC - 1.5).toFixed(1) + ' ' + CC.toFixed(1) + '" stroke-dashoffset="' + (-acc * CC).toFixed(1) + '"/>';
+    acc += fr;
+  });
+  dEl.innerHTML = '<svg viewBox="0 0 110 110">' + segs + '</svg>';
+  lEl.innerHTML = top.map((b, i) =>
+    '<div><i style="background:' + DC[i] + '"></i><span>' + esc2(b[0]) + '</span><b>' + fmtShort(b[1]) + '</b></div>').join('');
+}
+
+/* ---------- การ์ดบัญชีเอียง 3D (gyro บน Android, นิ้ว/เมาส์ที่อื่น — ไม่เด้งกล่องขอสิทธิ์บน iOS) ---------- */
+(function initTilt() {
+  const card = document.querySelector('.summary');
+  if (!card || _reduceMotion) return;
+  let tx = 0, ty = 0, cx = 0, cy = 0, raf = null;
+  function loop() {
+    cx += (tx - cx) * 0.12; cy += (ty - cy) * 0.12;
+    card.style.transform = 'perspective(800px) rotateY(' + cx.toFixed(2) + 'deg) rotateX(' + (-cy).toFixed(2) + 'deg)';
+    card.style.setProperty('--hx', (55 + cx * 7) + '%');
+    if (Math.abs(tx - cx) > 0.02 || Math.abs(ty - cy) > 0.02) raf = requestAnimationFrame(loop);
+    else raf = null;
+  }
+  function aim(x, y) { tx = Math.max(-8, Math.min(8, x)); ty = Math.max(-8, Math.min(8, y)); if (!raf) raf = requestAnimationFrame(loop); }
+  card.addEventListener('pointermove', e => {
+    const r = card.getBoundingClientRect();
+    aim(((e.clientX - r.left) / r.width - 0.5) * 12, ((e.clientY - r.top) / r.height - 0.5) * 10);
+  });
+  ['pointerleave', 'pointercancel', 'pointerup'].forEach(ev => card.addEventListener(ev, () => aim(0, 0)));
+  if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission !== 'function') {
+    let base = null;
+    window.addEventListener('deviceorientation', e => {
+      if (e.gamma == null || e.beta == null) return;
+      if (base === null) base = { b: e.beta, g: e.gamma };
+      aim((e.gamma - base.g) / 5, (e.beta - base.b) / 5);
+    });
+  }
+})();
+
+/* ---------- ใบยืนยันรับเงินสวยๆ ของร้าน (canvas → แชร์/ดาวน์โหลด) ---------- */
+let _logoImg = null;
+function loadLogo() {
+  return new Promise(res => {
+    if (_logoImg) return res(_logoImg);
+    const im = new Image();
+    im.onload = () => { _logoImg = im; res(im); };
+    im.onerror = () => res(null);
+    im.src = 'hurt-logo.jpg';
+  });
+}
+function _rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+async function makeReceipt(id) {
+  const it = data.find(x => x.id === id);
+  if (!it) return;
+  vib(10);
+  try {   // รอฟอนต์ไทยพร้อม (เกิน 0.8 วิ ก็วาดด้วยฟอนต์ระบบไปเลย ไม่ให้ค้าง)
+    if (document.fonts && document.fonts.load)
+      await Promise.race([
+        Promise.all([document.fonts.load('700 64px "IBM Plex Sans Thai"'), document.fonts.load('400 20px "IBM Plex Sans Thai"')]),
+        new Promise(r => setTimeout(r, 800))
+      ]);
+  } catch (e) {}
+  const logo = await loadLogo();
+  const W = 720, H = 900, c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  const F = '"IBM Plex Sans Thai", -apple-system, sans-serif';
+  const bg = x.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#0a1a26'); bg.addColorStop(1, '#0d2a3c');
+  x.fillStyle = bg; x.fillRect(0, 0, W, H);
+  const glow = x.createRadialGradient(W * 0.85, 40, 10, W * 0.85, 40, 420);
+  glow.addColorStop(0, 'rgba(0,164,228,.30)'); glow.addColorStop(1, 'rgba(0,164,228,0)');
+  x.fillStyle = glow; x.fillRect(0, 0, W, H);
+  _rr(x, 40, 40, W - 80, H - 80, 30);
+  x.fillStyle = 'rgba(255,255,255,.055)'; x.fill();
+  x.strokeStyle = 'rgba(255,255,255,.18)'; x.lineWidth = 1.5; x.stroke();
+  if (logo) { x.save(); _rr(x, W / 2 - 46, 78, 92, 92, 22); x.clip(); x.drawImage(logo, W / 2 - 46, 78, 92, 92); x.restore(); }
+  x.textAlign = 'center';
+  x.fillStyle = '#f1f5f9'; x.font = '700 34px ' + F;
+  x.fillText('HURT SHOP', W / 2, 214);
+  x.fillStyle = '#93acba'; x.font = '400 20px ' + F;
+  x.fillText('ใบยืนยันการรับเงิน', W / 2, 246);
+  x.fillStyle = '#4cc9f0'; x.font = '700 64px ' + F;
+  x.fillText(fmt(amt(it)) + ' ฿', W / 2, 342);
+  const okv = !!it.slipVerified;
+  const btxt = okv ? '🛡️ ยืนยันกับธนาคารแล้ว' : '✓ บันทึกโดยร้าน';
+  x.font = '600 20px ' + F;
+  const bw = x.measureText(btxt).width + 44;
+  _rr(x, W / 2 - bw / 2, 368, bw, 42, 21);
+  x.fillStyle = okv ? 'rgba(34,197,94,.16)' : 'rgba(0,164,228,.16)'; x.fill();
+  x.strokeStyle = okv ? 'rgba(34,197,94,.5)' : 'rgba(0,164,228,.5)'; x.lineWidth = 1.5; x.stroke();
+  x.fillStyle = okv ? '#86efac' : '#7dd8f8';
+  x.fillText(btxt, W / 2, 396);
+  x.setLineDash([8, 8]); x.strokeStyle = 'rgba(255,255,255,.2)'; x.lineWidth = 1.5;
+  x.beginPath(); x.moveTo(80, 450); x.lineTo(W - 80, 450); x.stroke(); x.setLineDash([]);
+  const rows = [
+    ['ผู้โอน', it.name || '-'],
+    ['ธนาคาร', it.bank || '-'],
+    ['วันที่', /^\d{4}-\d{2}-\d{2}/.test(it.date || '') ? thaiDate(it.date) : (it.date || '-')],
+  ];
+  if (it.note) rows.push(['โน้ต', it.note]);
+  rows.push(['เลขที่รายการ', String(it.id || '').toUpperCase()]);
+  let yy = 502;
+  rows.forEach(rw => {
+    x.textAlign = 'left'; x.fillStyle = '#93acba'; x.font = '400 20px ' + F;
+    x.fillText(rw[0], 90, yy);
+    x.textAlign = 'right'; x.fillStyle = '#f1f5f9'; x.font = '600 21px ' + F;
+    let v = String(rw[1]); if (v.length > 30) v = v.slice(0, 29) + '…';
+    x.fillText(v, W - 90, yy);
+    yy += 46;
+  });
+  x.textAlign = 'center'; x.fillStyle = 'rgba(147,172,186,.75)'; x.font = '400 17px ' + F;
+  const now = new Date();
+  x.fillText('ออกใบยืนยันเมื่อ ' + thaiDate(todayStr()) + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ' น.', W / 2, H - 96);
+  x.fillText('ขอบคุณที่อุดหนุนครับ 💙', W / 2, H - 66);
+  const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+  if (!blob) return;
+  const fname = 'HURTSHOP-' + (it.date || todayStr()) + '.png';
+  let file = null;
+  try { file = new File([blob], fname, { type: 'image/png' }); } catch (e) {}
+  if (file && navigator.canShare && navigator.canShare({ files: [file] })) {   // มือถือ: เด้งชีทแชร์ ส่งให้ลูกค้าได้เลย
+    try { await navigator.share({ files: [file], title: 'ใบยืนยันการรับเงิน HURT SHOP' }); return; }
+    catch (e) { if (e && e.name === 'AbortError') return; }   // ผู้ใช้กดยกเลิกชีทแชร์ — จบเงียบๆ ไม่ต้องดาวน์โหลดซ้ำ
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = fname; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 
 /* ---------- auth (เข้าสู่ระบบด้วย Google) ---------- */
