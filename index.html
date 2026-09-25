@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://bank-48baf-default-rtdb.asia-southeast1.firebasedatabase.app">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="manifest" href="bank-manifest.json">
+<link rel="icon" href="hurt-logo.jpg">
 <link rel="apple-touch-icon" href="hurt-logo.jpg">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -817,7 +818,7 @@ window._oauthError = '';
   } catch (e) {}
 })();
 
-const APP_VER = 'v7.25';   // โชว์บนหน้า login — เช็คจากภาพหน้าจอได้ว่าเครื่องรันโค้ดรุ่นไหน (กันงงเรื่องแคช)
+const APP_VER = 'v7.26';   // โชว์บนหน้า login — เช็คจากภาพหน้าจอได้ว่าเครื่องรันโค้ดรุ่นไหน (กันงงเรื่องแคช)
 const LKEY = 'bank_transfers_v1';      // local fallback store
 const CFGKEY = 'bank_fb_config';        // saved firebase config (JSON string)
 const ROOMKEY = 'bank_room';            // saved room code
@@ -1995,14 +1996,20 @@ function animateNum(el, target, format) {
 
 /* ---------- haptic + เสียงติ๊ง + confetti ---------- */
 function vib(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
-let _ac = null;   // AudioContext ต้องเกิด/ปลุกจาก gesture ผู้ใช้ (นโยบาย iOS/Chrome) — เกาะการแตะครั้งแรกไว้
-document.addEventListener('pointerdown', function () {
+let _ac = null;   // AudioContext ต้องเกิด/ปลุกจาก gesture ผู้ใช้ (นโยบาย iOS/Chrome) — เกาะการแตะไว้
+// iOS นับเป็น gesture เฉพาะตอน "ปล่อยนิ้ว" (touchend/click) ไม่ใช่ตอนเริ่มแตะ — และต้องเล่นเสียงจริงภายใน gesture นั้นถึงจะปลดล็อก
+function _unlockAudio() {
   try {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!_ac && AC) _ac = new AC();
-    if (_ac && _ac.state === 'suspended') _ac.resume().catch(() => {});
+    if (!_ac || _ac.state === 'running') return;
+    _ac.resume().catch(() => {});
+    const src = _ac.createBufferSource();
+    src.buffer = _ac.createBuffer(1, 1, 22050);   // เสียงเงียบ 1 sample
+    src.connect(_ac.destination); src.start(0);
   } catch (e) {}
-}, { capture: true, passive: true });
+}
+['pointerdown', 'touchend', 'click'].forEach(ev => document.addEventListener(ev, _unlockAudio, { capture: true, passive: true }));
 function ting() {
   if (!_ac || _ac.state !== 'running') return;
   try {
@@ -2022,7 +2029,10 @@ const _fxCv = document.getElementById('fx'), _fx = _fxCv ? _fxCv.getContext('2d'
 let _fxP = [], _fxRaf = null;
 function confettiBurst() {
   if (!_fx || _reduceMotion) return;
-  _fxCv.width = innerWidth; _fxCv.height = innerHeight;
+  const dpr = Math.min(3, window.devicePixelRatio || 1);   // วาดตามพิกเซลจริงของจอ (จอ retina ไม่เบลอ) — จำกัด 3 กันเปลืองแรม
+  _fxCv.width = innerWidth * dpr; _fxCv.height = innerHeight * dpr;
+  _fxCv.style.width = innerWidth + 'px'; _fxCv.style.height = innerHeight + 'px';
+  _fx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const colors = ['#00a4e4', '#4cc9f0', '#22c55e', '#f59e0b', '#f472b6', '#ffffff'];
   for (let i = 0; i < 140; i++) {
     const a = Math.random() * Math.PI * 2, sp = 4 + Math.random() * 9;
@@ -2035,8 +2045,8 @@ function confettiBurst() {
   if (!_fxRaf) _fxRaf = requestAnimationFrame(_fxTick);
 }
 function _fxTick() {
-  _fx.clearRect(0, 0, _fxCv.width, _fxCv.height);
-  _fxP = _fxP.filter(p => p.life > 0 && p.y < _fxCv.height + 30);
+  _fx.clearRect(0, 0, innerWidth, innerHeight);
+  _fxP = _fxP.filter(p => p.life > 0 && p.y < innerHeight + 30);
   _fxP.forEach(p => {
     p.x += p.vx; p.y += p.vy; p.vy += 0.22; p.vx *= 0.99; p.r += p.vr; p.life--;
     _fx.save(); _fx.translate(p.x, p.y); _fx.rotate(p.r);
@@ -2045,7 +2055,7 @@ function _fxTick() {
     _fx.restore();
   });
   if (_fxP.length) _fxRaf = requestAnimationFrame(_fxTick);
-  else { _fxRaf = null; _fx.clearRect(0, 0, _fxCv.width, _fxCv.height); }
+  else { _fxRaf = null; _fx.clearRect(0, 0, innerWidth, innerHeight); }
 }
 function celebrate() { confettiBurst(); ting(); vib([16, 70, 22]); }
 
@@ -2169,6 +2179,9 @@ function buildHomeCharts(all) {
     window.addEventListener('deviceorientation', e => {
       if (e.gamma == null || e.beta == null) return;
       if (base === null) base = { b: e.beta, g: e.gamma };
+      // มุมตั้งต้นค่อยๆ ไหลตามท่าถือปัจจุบัน — เปลี่ยนท่าถือแล้วการ์ดกลับมาตรงเองในไม่กี่วินาที ไม่ค้างเอียง
+      base.b += (e.beta - base.b) * 0.02;
+      base.g += (e.gamma - base.g) * 0.02;
       aim((e.gamma - base.g) / 5, (e.beta - base.b) / 5);
     });
   }
