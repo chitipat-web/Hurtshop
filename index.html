@@ -1382,7 +1382,7 @@
 <script src="vendor/firebase/firebase-app-compat.js"></script>
 <script src="vendor/firebase/firebase-database-compat.js"></script>
 <script src="vendor/firebase/firebase-auth-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="vendor/jsqr/jsQR.js"></script>
 <script>
 /* รับผลล็อกอินแบบ redirect (iOS): Google ส่ง access_token กลับมาใน #hash ของ URL
    ต้องเก็บ+ล้างออกจาก URL ทันทีก่อนโค้ดอื่นทำงาน (ไม่ให้ token ติดอยู่ในประวัติเบราว์เซอร์) */
@@ -1435,7 +1435,7 @@ Object.assign(ICN, {
 const BANK_UI = { 'กสิกรไทย': ['K', '#138f2d'], 'ไทยพาณิชย์': ['SCB', '#4e2e7f'], 'กรุงเทพ': ['BBL', '#1e4598'], 'กรุงไทย': ['KTB', '#1ba5e1'],
   'กรุงศรีอยุธยา': ['BAY', '#fec43b', '#3b2a00'], 'ทหารไทยธนชาต': ['ttb', '#1453ff'], 'ออมสิน': ['GSB', '#eb198d'], 'พร้อมเพย์': ['PP', '#1d3f73'], 'TrueMoney': ['TM', '#f47920'] };
 const ico = (n, c) => '<svg class="ic' + (c ? ' ' + c : '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICN[n] || '') + '</svg>';
-const APP_VER = 'v7.29';   // โชว์บนหน้า login — เช็คจากภาพหน้าจอได้ว่าเครื่องรันโค้ดรุ่นไหน (กันงงเรื่องแคช)
+const APP_VER = 'v7.30';   // โชว์บนหน้า login — เช็คจากภาพหน้าจอได้ว่าเครื่องรันโค้ดรุ่นไหน (กันงงเรื่องแคช)
 const LKEY = 'bank_transfers_v1';      // local fallback store
 const CFGKEY = 'bank_fb_config';        // saved firebase config (JSON string)
 const ROOMKEY = 'bank_room';            // saved room code
@@ -2028,15 +2028,64 @@ async function sha256(buf) {
   const h = await crypto.subtle.digest('SHA-256', buf);
   return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2,'0')).join('');
 }
-function readQRfromImage(img) {
-  const max = 1000, scale = Math.min(1, max / Math.max(img.width, img.height));
+// QR ตรวจสลิปของธนาคารไทย (Mini QR): 00[00=API ID, 01=รหัสธนาคารผู้โอน, 02=เลขอ้างอิง] 51=TH 91=CRC16
+const QR_BANKS = { '002': 'กรุงเทพ', '004': 'กสิกรไทย', '006': 'กรุงไทย', '011': 'ทหารไทยธนชาต', '014': 'ไทยพาณิชย์', '025': 'กรุงศรีอยุธยา',
+  '030': 'ออมสิน', '065': 'ทหารไทยธนชาต', '022': 'ซีไอเอ็มบี', '024': 'ยูโอบี', '033': 'ธอส.', '034': 'ธ.ก.ส.', '066': 'อิสลาม', '067': 'ทิสโก้', '069': 'เกียรตินาคินภัทร', '073': 'แลนด์ แอนด์ เฮ้าส์' };
+function crc16(str) {
+  let c = 0xFFFF;
+  for (let i = 0; i < str.length; i++) {
+    c ^= str.charCodeAt(i) << 8;
+    for (let k = 0; k < 8; k++) c = (c & 0x8000) ? ((c << 1) ^ 0x1021) & 0xFFFF : (c << 1) & 0xFFFF;
+  }
+  return c.toString(16).toUpperCase().padStart(4, '0');
+}
+function parseSlipQR(s) {
+  if (!s || !/^00\d\d/.test(s)) return null;
+  const tlv = str => { const o = {}; let i = 0; while (i + 4 <= str.length) { const len = parseInt(str.substr(i + 2, 2), 10); if (isNaN(len)) break; o[str.substr(i, 2)] = str.substr(i + 4, len); i += 4 + len; } return o; };
+  const top = tlv(s);
+  if (!top['00'] || top['51'] !== 'TH') return null;
+  const sub = tlv(top['00']);
+  return { bankCode: sub['01'] || '', bank: QR_BANKS[sub['01']] || '', txnRef: sub['02'] || '', crcOk: !!top['91'] && crc16(s.slice(0, -4)) === top['91'].toUpperCase() };
+}
+// jsQR บนบางส่วนของรูป (ย่อ/ขยายให้พอดี + ปรับขาวดำเพิ่มความคมชัดได้)
+function qrRegion(img, x, y, w, h, target, enhance) {
+  const sc = Math.min(4, target / Math.max(w, h));
   const c = document.createElement('canvas');
-  c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
-  const ctx = c.getContext('2d');
-  ctx.drawImage(img, 0, 0, c.width, c.height);
+  c.width = Math.max(1, Math.round(w * sc)); c.height = Math.max(1, Math.round(h * sc));
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, x, y, w, h, 0, 0, c.width, c.height);
   const d = ctx.getImageData(0, 0, c.width, c.height);
-  try { const r = (typeof jsQR === 'function') ? jsQR(d.data, c.width, c.height) : null; return r ? r.data : ''; }
+  if (enhance) {   // ขาวดำ + ยืดคอนทราสต์ (ช่วยรูปถ่ายจอ/แสงน้อย)
+    const a = d.data; let lo = 255, hi = 0;
+    for (let i = 0; i < a.length; i += 16) { const g = (a[i] * 3 + a[i + 1] * 6 + a[i + 2]) / 10; if (g < lo) lo = g; if (g > hi) hi = g; }
+    const k = 255 / Math.max(1, hi - lo);
+    for (let i = 0; i < a.length; i += 4) { const g = ((a[i] * 3 + a[i + 1] * 6 + a[i + 2]) / 10 - lo) * k; a[i] = a[i + 1] = a[i + 2] = g; }
+  }
+  try { const r = (typeof jsQR === 'function') ? jsQR(d.data, c.width, c.height, { inversionAttempts: enhance ? 'attemptBoth' : 'dontInvert' }) : null; return r ? r.data : ''; }
   catch (e) { return ''; }
+}
+function readQRfromImage(img) {   // รอบเดียวแบบเดิม (ใช้เป็นรอบแรก)
+  const W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
+  return qrRegion(img, 0, 0, W, H, 1000, false);
+}
+// อ่าน QR ให้ติดที่สุด: ตัวอ่านในเครื่อง (Android) → ทั้งรูป → ความละเอียดสูง → มุมทั้ง 4 (ขยาย) → ขาวดำ
+// หยุดทันทีที่เจอ QR สลิปที่ CRC ถูก (= อ่านถูกทุกตัวอักษร)
+async function readSlipQR(img) {
+  let first = '';
+  const good = v => { if (v && !first) first = v; const q = v && parseSlipQR(v); return !!(q && q.crcOk); };
+  if ('BarcodeDetector' in window) {
+    try { const r = await new BarcodeDetector({ formats: ['qr_code'] }).detect(img); for (const x of r) if (good(x.rawValue)) return x.rawValue; } catch (e) {}
+  }
+  const W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
+  const cw = Math.round(W * 0.58), ch = Math.round(H * 0.5);
+  const passes = [
+    [0, 0, W, H, 1000, false], [0, 0, W, H, 1800, false],
+    [W - cw, 0, cw, ch, 900, false], [W - cw, H - ch, cw, ch, 900, false], [0, H - ch, cw, ch, 900, false], [0, 0, cw, ch, 900, false],
+    [0, 0, W, H, 1200, true], [W - cw, 0, cw, ch, 1100, true], [W - cw, H - ch, cw, ch, 1100, true],
+  ];
+  for (const [x, y, w, h, t, e] of passes) { const v = qrRegion(img, x, y, w, h, t, e); if (good(v)) return v; }
+  return first;
 }
 
 /* ---------- อ่านสลิปไม่มี QR ด้วย OCR ในเครื่อง (Tesseract self-host — ฟรี ไม่ส่งรูปออกนอกเครื่อง) ---------- */
@@ -2056,106 +2105,151 @@ function loadTesseract() {
 }
 // เครื่องเก่าบางรุ่นไม่รองรับ wasm SIMD → เลือก core ให้ตรงรุ่น
 const _wasmSimd = (() => { try { return WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,0,0,1,5,1,96,0,1,123,3,2,1,0,10,10,1,8,0,65,0,253,15,253,98,11])); } catch (e) { return false; } })();
-async function ocrSlipText(img) {
-  await loadTesseract();
-  const worker = await Tesseract.createWorker('tha', 1, {
-    workerPath: 'vendor/tesseract/worker.min.js',
-    corePath: 'vendor/tesseract/tesseract-core-' + (_wasmSimd ? 'simd-' : '') + 'lstm.wasm.js',
-    langPath: 'vendor/tesseract/',
-    gzip: true,
-  });
+let _ocrWorker = null, _ocrIdle = null;
+function getOcrWorker() {   // ตัวอ่านไทย+อังกฤษ สร้างครั้งเดียวแล้วใช้ต่อ (ใบถัดไปเร็วขึ้นมาก)
+  clearTimeout(_ocrIdle);
+  if (!_ocrWorker) {
+    _ocrWorker = loadTesseract().then(() => Tesseract.createWorker(['tha', 'eng'], 1, {
+      workerPath: 'vendor/tesseract/worker.min.js',
+      corePath: 'vendor/tesseract/tesseract-core-' + (_wasmSimd ? 'simd-' : '') + 'lstm.wasm.js',
+      langPath: 'vendor/tesseract/',
+      gzip: true,
+    })).catch(e => { _ocrWorker = null; throw e; });
+  }
+  return _ocrWorker;
+}
+function releaseOcrWorker() {   // ว่าง 90 วิ → ปิดตัวอ่าน คืนหน่วยความจำ
+  clearTimeout(_ocrIdle);
+  _ocrIdle = setTimeout(async () => { const w = _ocrWorker; _ocrWorker = null; if (w) { try { (await w).terminate(); } catch (e) {} } }, 90000);
+}
+async function ocrSlipText(img, mode) {
+  const worker = await getOcrWorker();
   try {
-    const scale = Math.min(2, 2000 / Math.max(img.width, img.height));   // ขยายช่วยตัวหนังสือเล็ก
+    const W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
+    const scale = Math.min(3, 2000 / Math.max(W, H));   // ขยายช่วยตัวหนังสือเล็ก
     const c = document.createElement('canvas');
-    c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    c.width = Math.round(W * scale); c.height = Math.round(H * scale);
+    const x = c.getContext('2d', { willReadFrequently: true });
+    x.imageSmoothingQuality = 'high';
+    x.drawImage(img, 0, 0, c.width, c.height);
+    if (mode !== 'plain') {   // ขาวดำ + เพิ่มคอนทราสต์ (ตัวหนังสือสีเทา/สีฟ้าบนลายพื้นหลังอ่านชัดขึ้น)
+      const d = x.getImageData(0, 0, c.width, c.height), a = d.data;
+      for (let i = 0; i < a.length; i += 4) { const g = Math.max(0, Math.min(255, (0.299 * a[i] + 0.587 * a[i + 1] + 0.114 * a[i + 2] - 60) * 1.6)); a[i] = a[i + 1] = a[i + 2] = g; }
+      x.putImageData(d, 0, 0);
+    }
     const r = await worker.recognize(c);
     return (r && r.data && r.data.text) || '';
-  } finally { try { worker.terminate(); } catch (e) {} }
+  } finally { releaseOcrWorker(); }
 }
-// แยก ยอด/ธนาคาร/ชื่อ/วันที่ จากข้อความในสลิป (เผื่อ OCR อ่านเพี้ยนเล็กน้อย)
-function parseSlipInfo(text) {
+// แยก ยอด/ธนาคาร/ชื่อ/วันที่/เลขอ้างอิง จากข้อความในสลิป (ทนตัวอักษรที่ OCR อ่านเพี้ยน)
+function parseSlipInfo(raw) {
   const out = {};
-  const lines = text.split('\n').map(s => s.trim()).filter(Boolean);
-  const thCount = s => (s.match(/[ก-๙]/g) || []).length;
-  const numRe = /(\d[\d,]*\.\d{2})/;
-  // จำนวนเงิน — สระอำอาจถูกอ่านเป็น ํ+า แยกกัน
-  const li = lines.findIndex(l => /จ[ำํ]?า?นวนเงิน/.test(l));
-  if (li >= 0) {
-    for (let i = li; i < Math.min(li + 3, lines.length); i++) {
-      const m = lines[i].match(numRe);
-      if (m) { out.amount = parseFloat(m[1].replace(/,/g, '')); break; }
-    }
-  }
-  if (!out.amount) {   // สำรอง: เลข x.xx ที่มีคำว่า บาท และไม่ใช่ค่าธรรมเนียม/ยอดคงเหลือ (กันหยิบยอดคงเหลือในสลิปมาเป็นจำนวนเงิน)
-    const cand = lines.filter(l => /บาท/.test(l) && !/ธรรมเนียม|คงเหลือ|ยอดเงินคงเหลือ|balance/i.test(l))
-      .map(l => (l.match(numRe) || [])[1]).filter(Boolean)
-      .map(s => parseFloat(s.replace(/,/g, ''))).filter(n => n > 0);
+  const text = String(raw || '')
+    .replace(/[๐-๙]/g, d => String('๐๑๒๓๔๕๖๗๘๙'.indexOf(d)))   // เลขไทย → เลขอารบิก
+    .replace(/ํา/g, 'ำ').replace(/[“”"„]/g, '').replace(/ /g, ' ');
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const flat = l => l.replace(/\s+/g, ' ');
+  const toIdx = lines.findIndex(l => /ไปยัง|^\W*to\b/i.test(l));
+  const NOT_AMT = /ธรรมเนียม|คงเหลือ|fee|balance/i;
+  // จำนวนเงิน: "3,000.00 บาท" / "929 00 บาท" (จุดหาย) / "500 บาท" / "฿1,250.00" / "1,250.00 THB"
+  const amountIn = l => {
+    const m = l.match(/(\d{1,3}(?:,\d{3})+|\d+)(?:\s?\.\s?(\d{2})|\s(\d{2}))?\s*(?:บาท|฿|THB|baht)/i) || l.match(/฿\s*(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{2}))?/) || l.match(/(\d{1,3}(?:,\d{3})+|\d+)\.(\d{2})(?!\d)/);
+    if (!m) return null;
+    const v = parseFloat(m[1].replace(/,/g, '') + '.' + (m[2] || m[3] || '00'));
+    return v > 0 && v < 1e8 ? v : null;
+  };
+  const li = lines.findIndex(l => /นวนเงิน|จ[ำา]นวน|amount/i.test(l) && !NOT_AMT.test(l));
+  if (li >= 0) for (let i = li; i < Math.min(li + 3, lines.length); i++) { if (i > li && NOT_AMT.test(lines[i])) break; const v = amountIn(lines[i]); if (v) { out.amount = v; break; } }
+  if (!out.amount) {   // สำรอง: บรรทัดที่มี บาท/฿ และไม่ใช่ค่าธรรมเนียม/ยอดคงเหลือ
+    const cand = lines.filter(l => /บาท|฿|THB/i.test(l) && !NOT_AMT.test(l)).map(amountIn).filter(Boolean);
     if (cand.length) out.amount = Math.max(...cand);
   }
-  if (out.amount && !(out.amount > 0 && out.amount < 100000000)) delete out.amount;
-  // ธนาคาร: ต้นทาง = ก่อนคำว่า "ไปยัง", ปลายทาง = หลัง
-  const cut = text.indexOf('ไปยัง');
-  const head = cut > 0 ? text.slice(0, cut) : text;
-  const tail = cut > 0 ? text.slice(cut) : '';
+  // ธนาคาร: ก่อน "ไปยัง" = ต้นทาง, หลัง = ปลายทาง
+  const head = (toIdx >= 0 ? lines.slice(0, toIdx) : lines).join('\n');
+  const tail = toIdx >= 0 ? lines.slice(toIdx).join('\n') : '';
   const BANKS = [
-    [/กสิกร|kbank|k\s?biz|k\+/i, 'กสิกรไทย'], [/ไทยพาณิชย์|scb/i, 'ไทยพาณิชย์'],
-    [/กรุงเทพ/i, 'กรุงเทพ'], [/กรุงไทย|krungthai/i, 'กรุงไทย'],
-    [/กรุงศรี|krungsri/i, 'กรุงศรีอยุธยา'], [/ทหารไทย|ธนชาต|ttb/i, 'ทหารไทยธนชาต'],
-    [/ออมสิน|gsb/i, 'ออมสิน'], [/พร้อมเพย์|promptpay/i, 'พร้อมเพย์'],
+    [/กสิกร|kbank|kasikorn|k\s?plus|k\s?biz|k\+/i, 'กสิกรไทย'], [/ไทยพาณิชย์|\bscb\b/i, 'ไทยพาณิชย์'],
+    [/กรุงเทพ|bangkok\s*bank|\bbbl\b/i, 'กรุงเทพ'], [/กรุงไทย|krungthai|\bktb\b/i, 'กรุงไทย'],
+    [/กรุงศรี|krungsri|\bbay\b/i, 'กรุงศรีอยุธยา'], [/ทหารไทย|ธนชาต|\bttb\b/i, 'ทหารไทยธนชาต'],
+    [/ออมสิน|\bgsb\b|mymo/i, 'ออมสิน'], [/พร้อมเพย์|promptpay/i, 'พร้อมเพย์'],
     [/true\s?money|ทรูมันนี่/i, 'TrueMoney'],
   ];
   for (const [re, name] of BANKS) { if (re.test(head)) { out.bankFrom = name; break; } }
   for (const [re, name] of BANKS) { if (tail && re.test(tail)) { out.bankTo = name; break; } }
-  // ชื่อ: บรรทัดไทยยาวๆ แรกหลัง "จาก" (ผู้โอน) / หลัง "ไปยัง" (ผู้รับ)
-  const pickName = startIdx => {
-    for (let i = startIdx + 1; i < Math.min(startIdx + 5, lines.length); i++) {
-      if (/ธนาคาร|ไปยัง|จ[ำํ]?า?นวนเงิน/.test(lines[i])) break;
-      if (thCount(lines[i]) >= 4 || /^(นาย|นาง|น\.ส\.|หจก|บจก|บมจ)/.test(lines[i])) return lines[i];
-    }
-    return '';
+  // ชื่อ: บรรทัดที่มีคำนำหน้า (ตัดขยะข้างหน้าทิ้ง) — ก่อน "ไปยัง" = ผู้โอน, หลัง = ผู้รับ
+  const nameOf = l => {
+    let m = l.match(/(นางสาว|นาย|นาง|น\.ส\.|ด\.ช\.|ด\.ญ\.|บจก\.?|บมจ\.?|หจก\.?|บริษัท|ร้าน)/);
+    const e = l.match(/(?:^|[^A-Za-z])((?:MR|MRS|MS|MISS)\.?\s+[A-Z])/);
+    if (e && (!m || e.index < m.index)) m = { index: e.index + e[0].indexOf(e[1]) };
+    if (!m) return '';
+    let n = l.slice(m.index).split(/\s{2,}|\s\|/)[0].trim();
+    n = n.replace(/\s*\*[\s*]*$/, '***').replace(/([^\s])([ก-ฮA-Za-z])\*\*\*$/, '$1 $2***');
+    const body = n.replace(/^(นางสาว|นาย|นาง|น\.ส\.|MR\.?|MRS\.?|MS\.?|MISS)\s*/i, '');
+    return (body.match(/[ก-๙A-Za-z]/g) || []).length >= 3 ? n : '';
   };
-  const fi = lines.findIndex(l => /^[จอ]าก\b|^[จอ]าก$/.test(l));
-  if (fi >= 0) out.nameFrom = pickName(fi);
-  const ti = lines.findIndex(l => /ไปยัง/.test(l));
-  if (ti >= 0) out.nameTo = pickName(ti);
-  // วันที่ไทยย่อ เช่น "21 ก.ค. 69" (พ.ศ. 2 หรือ 4 หลัก)
-  const dm = text.match(/(\d{1,2})\s*(มี\.?\s?ค|มิ\.?\s?ย|เม\.?\s?ย|ม\.?\s?ค|ก\.?\s?พ|พ\.?\s?ค|ก\.?\s?ค|ส\.?\s?ค|ก\.?\s?ย|ต\.?\s?ค|พ\.?\s?ย|ธ\.?\s?ค)\.?\s*(\d{2,4})/);
-  if (dm) {
-    const MON = { 'มค':1,'กพ':2,'มีค':3,'เมย':4,'พค':5,'มิย':6,'กค':7,'สค':8,'กย':9,'ตค':10,'พย':11,'ธค':12 };
-    const mon = MON[dm[2].replace(/[.\s]/g, '')];
-    const day = parseInt(dm[1], 10);
-    let y = parseInt(dm[3], 10);
-    if (y < 100) y += 2500;
+  const names = lines.map((l, i) => ({ i, n: nameOf(l) })).filter(x => x.n);
+  if (toIdx >= 0) {
+    const f = names.filter(x => x.i < toIdx).pop(), t = names.find(x => x.i > toIdx);
+    if (f) out.nameFrom = f.n;
+    if (t) out.nameTo = t.n;
+  } else if (names.length) { out.nameFrom = names[0].n; if (names[1]) out.nameTo = names[1].n; }
+  // วันที่: "25 ก.ย. 2569" / "25 ก.ุย. 69" (สระเพี้ยน) / "25 Sep 2026"
+  const MON = { 'มค': 1, 'กพ': 2, 'มีค': 3, 'เมย': 4, 'พค': 5, 'มิย': 6, 'กค': 7, 'สค': 8, 'กย': 9, 'ตค': 10, 'พย': 11, 'ธค': 12 };
+  const EN = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+  const setDate = (d, mo, y, be) => {
+    if (y < 100) y += be ? 2500 : 2000;
     if (y > 2400) y -= 543;
-    if (mon && day >= 1 && day <= 31 && y >= 2020 && y <= 2100)
-      out.date = y + '-' + String(mon).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+    if (mo && d >= 1 && d <= 31 && y >= 2020 && y <= 2100) { out.date = y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0'); return true; }
+    return false;
+  };
+  for (const l of lines) {
+    const fl = flat(l);
+    let m, ok = false;
+    const re = /(\d{1,2})\s*([ก-๙.\s]{2,9}?)\s*(\d{4}|\d{2})(?!\d)/g;
+    while (!ok && (m = re.exec(fl))) ok = setDate(+m[1], MON[m[2].replace(/[^ก-ฮีิเ]/g, '')], +m[3], true);
+    if (!ok && (m = fl.match(/(\d{1,2})\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?,?\s*(\d{4}|\d{2})(?!\d)/i))) ok = setDate(+m[1], EN[m[2].toLowerCase()], +m[3], false);
+    if (ok) { const t = fl.match(/(\d{1,2}):(\d{2})(?!\d)/g); if (t) out.time = t[t.length - 1]; break; }
   }
-  // เลขที่รายการ/รหัสอ้างอิงของธนาคาร — เฉพาะของธุรกรรมจริงแต่ละครั้ง เหมือนเดิมแม้ถ่ายรูปสลิปใหม่ (กุญแจกันซ้ำที่ดีกว่าไฟล์แฮช)
-  const clean = t => (t || '').replace(/[^A-Za-z0-9]/g, '');
-  const ki = lines.findIndex(l => /เลข.{0,2}ท.{0,2}รายการ|รห[ัสี].{0,2}ส?อ้?างอิง|อ้างอิง|reference|transaction\s*(id|no)/i.test(l));
-  if (ki >= 0) {   // มองบรรทัดที่มีคีย์เวิร์ด + บรรทัดถัดไป
-    for (let i = ki; i < Math.min(ki + 2, lines.length); i++) {
-      const m = clean(lines[i]).match(/[A-Z0-9]{12,}/i);
-      if (m) { out.txnRef = m[0].toUpperCase(); break; }
+  // เลขที่รายการ/รหัสอ้างอิง — กุญแจกันสลิปซ้ำ (เหมือนเดิมแม้ถ่ายรูปใหม่)
+  const refTok = l => {
+    let best = '';
+    for (const t0 of l.split(/\s+/)) {
+      let t = t0.replace(/[^A-Za-z0-9]/g, '');
+      if (t.length < 10 || (t.match(/\d/g) || []).length < 5) continue;
+      if ((t.match(/\d/g) || []).length / t.length >= 0.6) t = t[0] + t.slice(1).replace(/[Oo]/g, '0').replace(/[Il]/g, '1');   // เกือบเป็นเลขล้วน: O→0, l→1
+      if (t.length > best.length) best = t;
     }
+    return best;
+  };
+  const REF_LABEL = /ร?ห[ัี]?ส.{0,2}[อข]|[อข].{0,2}างอ|เลข.{0,3}ที่.{0,3}รายการ|ref(erence)?\b|transaction\s*(id|no)/i;
+  for (let ki = 0; ki < lines.length && !out.txnRef; ki++) {   // ทุกบรรทัดที่หน้าตาเป็นหัวข้อ "รหัสอ้างอิง" (OCR อาจเพี้ยน) + บรรทัดถัดไป
+    if (!REF_LABEL.test(lines[ki])) continue;
+    for (let i = ki; i < Math.min(ki + 4, lines.length); i++) { if (/X{3}|\d{3}-\d-\d{3}|ไปยัง|[จอ]าก$/i.test(lines[i])) break; const t = refTok(lines[i]); if (t.length >= 12) { out.txnRef = t.toUpperCase(); break; } }
   }
-  if (!out.txnRef) {   // สำรอง: บรรทัดที่เป็นโทเคนยาว (≥14) ตัวอักษร/เลขล้วน และเป็นตัวเลขเยอะ (เลขอ้างอิงมักหน้าตาแบบนี้)
-    for (const l of lines) {
-      const c = clean(l);
-      if (c.length >= 14 && /^[A-Z0-9]+$/i.test(c) && (c.match(/\d/g) || []).length >= 10) { out.txnRef = c.toUpperCase(); break; }
-    }
+  if (!out.txnRef) for (const l of lines) {   // สำรอง: โทเคนยาว ≥14 ที่เป็นตัวเลขเยอะ (หน้าตาเลขอ้างอิง)
+    if (/X{3}|\d{3}-\d-\d{3}/i.test(l)) continue;   // ข้ามเลขบัญชีแบบปิดบัง
+    const t = refTok(l); if (t.length >= 14 && (t.match(/\d/g) || []).length >= 10) { out.txnRef = t.toUpperCase(); break; }
   }
   return out;
 }
+// อ่านสลิปครบชุด: OCR รอบแรก (ขาวดำ) → ข้อมูลสำคัญหาย = อ่านรอบสองแบบภาพเดิมมาเติม → ข้อมูลจาก QR ทับ (แม่นกว่า)
+async function readSlipOCR(img, qr) {
+  const info = parseSlipInfo(await ocrSlipText(img, 'gray'));
+  if (!info.amount || !info.date || !info.nameFrom) {
+    const i2 = parseSlipInfo(await ocrSlipText(img, 'plain'));
+    for (const k of Object.keys(i2)) if (info[k] == null) info[k] = i2[k];
+  }
+  const q = parseSlipQR(qr);
+  if (q && q.crcOk) { if (q.txnRef) info.txnRef = q.txnRef.toUpperCase(); if (q.bank) info.bankFrom = q.bank; }
+  return info;
+}
 // อ่านเสร็จแล้วเติมเฉพาะช่องที่ยังว่าง — เป็นแค่ตัวช่วยกรอก ผู้ใช้ต้องตรวจเอง (ไม่ใช่การยืนยันธนาคาร)
-async function ocrAutofill(img, baseMsg) {
+async function ocrAutofill(img, baseMsg, silent) {
   const token = ++_ocrToken;
   try {
-    const text = await ocrSlipText(img);
+    const info = await readSlipOCR(img, document.getElementById('fSlipRef').value);
     if (token !== _ocrToken) return;   // ผู้ใช้เปลี่ยนสลิปไปแล้ว
-    const info = parseSlipInfo(text);
-    currentSlipTxn = info.txnRef || '';   // เก็บเลขที่รายการไว้กันซ้ำตอนบันทึก
+    if (info.txnRef) currentSlipTxn = info.txnRef;   // เก็บเลขที่รายการไว้กันซ้ำตอนบันทึก
     const isOutForm = (typeof modalIO !== 'undefined' && modalIO === 'out');
     const name = isOutForm ? info.nameTo : info.nameFrom;     // เข้า=ผู้โอน, ออก=ผู้รับ
     const bank = isOutForm ? (info.bankTo || info.bankFrom) : info.bankFrom;
@@ -2168,12 +2262,13 @@ async function ocrAutofill(img, baseMsg) {
     if (bank && !fB.value && [...fB.options].some(o => o.value === bank)) { fB.value = bank; _ocrFilledVals.fBank = fB.value; filled.push('ธนาคาร' + bank); }
     const fD = document.getElementById('fDate');
     if (info.date && fD.value === todayStr()) { fD.value = info.date; _ocrFilledVals.fDate = fD.value; filled.push('วันที่'); }
+    if (silent) return;
     if (filled.length)
-      setSlipStatus('warn', baseMsg + '<br>🔍 อ่านจากสลิปให้แล้ว: <b>' + esc2(filled.join(' · ')) + '</b> — ตรวจให้ตรงกับสลิปก่อนกดบันทึก');
+      setSlipStatus('warn', baseMsg + '<br>อ่านจากสลิปให้แล้ว: <b>' + esc2(filled.join(' · ')) + '</b> — ตรวจให้ตรงกับสลิปก่อนกดบันทึก');
     else
-      setSlipStatus('warn', baseMsg + '<br>🔍 อ่านตัวหนังสือในสลิปไม่ออก — กรอกเองได้เลย');
+      setSlipStatus('warn', baseMsg + '<br>อ่านตัวหนังสือในสลิปไม่ออก — กรอกเองได้เลย');
   } catch (e) {
-    if (token === _ocrToken) setSlipStatus('warn', baseMsg);   // อ่านไม่ได้ก็เงียบๆ กลับข้อความเดิม
+    if (token === _ocrToken && !silent) setSlipStatus('warn', baseMsg);   // อ่านไม่ได้ก็เงียบๆ กลับข้อความเดิม
   }
 }
 /* ---------- เก็บรูปสลิป (บีบอัด + โหนดแยก slips) ---------- */
@@ -2184,7 +2279,7 @@ function slipAlreadyRecorded(hash, txn) {
   const h = hash || '', t = (txn || '').toUpperCase();
   return data.some(x => x && (
     (h && x.slipHash === h) ||
-    (t && ((x.slipTxn && x.slipTxn.toUpperCase() === t) || (x.slipRef && x.slipRef.toUpperCase() === t)))
+    (t && ((x.slipTxn && x.slipTxn.toUpperCase() === t) || (x.slipRef && x.slipRef.toUpperCase() === t) || String(x.id).toUpperCase() === t))
   ));
 }
 function compressToDataURL(img) {
@@ -2373,7 +2468,11 @@ async function handleSlip(input) {
     const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
     URL.revokeObjectURL(url);
     if (myTok !== _ocrToken) return;   // ถูกยกเลิกระหว่างอ่านไฟล์ (ปิดฟอร์ม/เปิดใหม่/เปลี่ยนสลิป) — ห้ามเขียนอะไรทั้งนั้น
-    const qr = readQRfromImage(img);
+    setSlipStatus('busy', 'กำลังอ่าน QR ในสลิป…');
+    const qr = await readSlipQR(img);
+    if (myTok !== _ocrToken) return;
+    const qi = parseSlipQR(qr);
+    if (qi && qi.crcOk && qi.txnRef) currentSlipTxn = qi.txnRef.toUpperCase();   // เลขอ้างอิงจาก QR (แม่นกว่า OCR)
     try { currentSlipImg = compressToDataURL(img); } catch (e) { currentSlipImg = ''; }   // เก็บรูปสลิป (บีบอัด)
     const th = document.getElementById('sdThumb');
     th.style.backgroundImage = currentSlipImg ? 'url("' + currentSlipImg + '")' : '';
@@ -2410,7 +2509,15 @@ function slipRoute(img, qr) {
     const baseMsg = '📎 แนบสลิปโอนออกแล้ว — ตรวจ <b>จำนวนเงิน/ผู้รับ</b> ให้ตรงกับสลิปก่อนกด "บันทึก"';
     setSlipStatus('warn', baseMsg + '<br>🔍 <b>กำลังอ่านตัวหนังสือในสลิป…</b> <small>(ครั้งแรกรอโหลดตัวอ่านสักครู่)</small>');
     ocrAutofill(img, baseMsg);
-  } else if (qr) setSlipStatus('ok', 'อ่านสลิปสำเร็จ — กด <b>"ยืนยันและบันทึก"</b><br><small>ยอด ชื่อ และวันที่ ดึงจากธนาคารให้อัตโนมัติ (กันเงินปลอม)</small>');
+  } else if (qr) {
+    const q = parseSlipQR(qr);
+    const meta = q && q.crcOk ? [q.bank && 'จาก' + q.bank, q.txnRef && 'อ้างอิง ' + q.txnRef].filter(Boolean).join(' · ') : '';
+    if (slipAlreadyRecorded(document.getElementById('fSlipHash').value, currentSlipTxn))
+      setSlipStatus('dup', 'สลิปนี้เคยบันทึกแล้ว' + (meta ? ' <small>(' + esc2(meta) + ')</small>' : '') + '<br><small>ถ้าบันทึกต่ออาจกลายเป็นเงินเข้าซ้ำ</small>');
+    else
+      setSlipStatus('ok', 'อ่าน QR สำเร็จ' + (meta ? ' <small>(' + esc2(meta) + ')</small>' : '') + ' — กด <b>"ยืนยันและบันทึก"</b><br><small>ยอด ชื่อ และวันที่ ดึงจากธนาคารให้อัตโนมัติ (กันเงินปลอม)</small>');
+    if (img && !_editing) ocrAutofill(img, '', true);   // เติมช่องกรอกไว้ก่อนเงียบๆ — ถ้าระบบตรวจสลิปใช้ไม่ได้ จะกรอกเองได้ทันที
+  }
   else {
     const baseMsg = role === 'owner'
       ? '⚠️ อ่าน QR ไม่เจอ (สลิป K BIZ/ภาพครอบไม่ติด QR) — ตรวจ <b>จำนวนเงิน</b> แล้วกด "บันทึก"'
