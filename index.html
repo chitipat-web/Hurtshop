@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#00a4e4">
+<meta name="theme-color" content="#0a1016">
 <title>HURT SHOP</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -558,6 +558,297 @@
   .item .info .by { color: var(--muted); font-size: 11px; margin-top: 3px; overflow-wrap: anywhere; }
   .item .info .by .ed { color: var(--amber); }
   @media print { .toasts { display: none !important; } }
+
+  /* ═══════════ Design v2 — เรียบแบบแอปใหญ่ (ชุดสีเดียวกับหน้าผู้ช่วย) ═══════════ */
+  :root {
+    --bg0: #0a1016; --s1: #111a22; --s2: #17212b; --s3: #1f2b37;
+    --bd: rgba(255,255,255,.08); --bd2: rgba(255,255,255,.14);
+    --tx: #e9eef2; --mu: #8b9aa7; --mu2: #66778a;
+    --ac: #3fc1f0; --ac2: #8b7cf6; --pos: #34d399; --neg: #f87171; --warn: #fbbf24;
+    /* ชุดเดิม → ผูกกับโทนใหม่ (ทุกที่ที่ใช้ตัวแปรเก่าจะเปลี่ยนตาม) */
+    --bg: var(--bg0); --card: var(--s1); --card2: var(--s2); --line: var(--bd2);
+    --text: var(--tx); --muted: var(--mu); --green: var(--pos); --green-d: #10b981; --red: var(--neg);
+    --accent: var(--ac); --amber: var(--warn); --cyan: var(--ac); --cyan-d: #1e9fd0; --blue: var(--ac);
+    /* ปิดกระจก: พื้นทึบ เส้นขอบบาง ไม่มีเงาเรือง */
+    --glass: var(--s1); --glass-2: var(--s2); --glass-bd: var(--bd); --glass-hi: transparent;
+    --blur: none; --glass-sh: 0 0 0 transparent; --inset-hi: 0 0 0 transparent;
+  }
+  body {
+    background: radial-gradient(900px 380px at 50% -140px, rgba(63,193,240,.13), transparent 70%), var(--bg0);
+    background-attachment: scroll;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+  .aurora { display: none; }
+  .ic { width: 20px; height: 20px; display: block; flex-shrink: 0; }
+
+  /* แถบบนติดขอบ (sticky) */
+  header.appbar {
+    position: sticky; top: 0; z-index: 20; text-align: left;
+    display: flex; align-items: center; gap: 12px;
+    margin: -16px -16px 6px; padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+    background: rgba(10,16,22,.82); -webkit-backdrop-filter: saturate(160%) blur(16px); backdrop-filter: saturate(160%) blur(16px);
+    border-bottom: 1px solid transparent; transition: border-color .2s ease;
+  }
+  header.appbar.scrolled { border-bottom-color: var(--bd); }
+  .appbar .hdr-logo { width: 36px; height: 36px; border-radius: 10px; margin: 0; vertical-align: 0; box-shadow: none; border: 1px solid var(--bd); }
+  .appbar .brand { flex: 1; min-width: 0; }
+  header.appbar h1 { font-size: 17px; font-weight: 700; letter-spacing: .2px; background: none; -webkit-text-fill-color: currentColor; color: var(--tx); line-height: 1.25; }
+  header.appbar p { margin: 0; font-size: 12px; color: var(--mu); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hbtn { width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--bd); background: var(--s1); color: var(--tx); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: background .15s ease; }
+  .hbtn:active { background: var(--s3); }
+  @media (hover: hover) { .hbtn:hover { background: var(--s2); } }
+  .hava { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--bd2); background: linear-gradient(135deg, #1e9fd0, var(--ac2)); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+
+  /* การ์ดยอด */
+  .summary {
+    background:
+      radial-gradient(420px 220px at 100% 0%, rgba(63,193,240,.22), transparent 70%),
+      radial-gradient(320px 200px at 0% 110%, rgba(139,124,246,.16), transparent 70%),
+      linear-gradient(160deg, #15293a, #111a22 70%);
+    border: 1px solid var(--bd2); border-radius: 20px; padding: 20px;
+    box-shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 12px 32px rgba(0,0,0,.28);
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+  .summary::before, .summary::after, .summary .holo { display: none; }
+  .summary .card-top { font-size: 12px; font-weight: 500; letter-spacing: .2px; color: var(--mu); opacity: 1; margin-bottom: 14px; }
+  .summary .card-top .chip { width: 22px; height: 22px; border-radius: 7px; background: url(hurt-logo.jpg) center/cover; box-shadow: none; border: 1px solid var(--bd2); }
+  .summary .label { text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 500; color: var(--mu); opacity: 1; }
+  .summary .total { font-size: 38px; font-weight: 700; letter-spacing: -1px; margin-top: 2px; color: var(--tx); }
+  .summary .total small { font-size: 16px; font-weight: 500; color: var(--mu); opacity: 1; }
+  .summary .total.neg { color: #fecaca; }
+  .summary .meta { gap: 0; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--bd); }
+  .summary .meta > div { flex: 1; min-width: 0; padding-left: 12px; border-left: 1px solid var(--bd); }
+  .summary .meta > div:first-child { padding-left: 0; border-left: 0; }
+  .summary .meta div span { font-size: 11.5px; color: var(--mu); opacity: 1; margin-bottom: 2px; }
+  .summary .meta div b { font-size: 15px; font-weight: 600; }
+  .summary .meta div b.mt-in { color: var(--pos); }
+  .summary .meta div b.mt-out { color: var(--neg); }
+
+  /* ไทล์สถิติ / เป้า / กราฟ */
+  .stat, .goal-card, .hc-card { background: var(--s1); border: 1px solid var(--bd); border-radius: 16px; box-shadow: none; }
+  .stat { padding: 13px 14px; }
+  .stat span { text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--mu); display: flex; align-items: center; gap: 6px; }
+  .stat span::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ac); }
+  .stat:last-child span::before { background: var(--pos); }
+  .stat b { font-size: 20px; font-weight: 700; margin-top: 4px; }
+  @media (hover: hover) { .stat:hover { transform: none; border-color: var(--bd2); box-shadow: none; } }
+  .goal-card { margin: -4px 0 16px; padding: 14px 16px; transition: border-color .15s ease; }
+  @media (hover: hover) { .goal-card:hover { border-color: var(--bd2); } }
+  .goal-ring { color: var(--ac); }
+  .goal-ring > .ic { width: 26px; height: 26px; }
+  .goal-ring .gr-bg { stroke: rgba(255,255,255,.08); }
+  .goal-ring b { color: var(--tx); font-size: 12.5px; }
+  .goal-info .gt { text-transform: none; letter-spacing: 0; font-size: 12px; }
+  .goal-edit { color: var(--mu2); }
+  .goal-edit .ic { width: 18px; height: 18px; }
+  .hc-title { text-transform: none; letter-spacing: 0; font-size: 12.5px; color: var(--mu); font-weight: 500; margin-bottom: 10px; }
+  .hc-title b { color: var(--tx); font-weight: 700; }
+  .hc-line circle { fill: var(--s1); }
+
+  /* ช่วงเวลา (segmented) + ค้นหา */
+  .seg { background: var(--s1); border: 1px solid var(--bd); border-radius: 12px; padding: 3px; gap: 2px; }
+  .seg-btn { border-radius: 9px; padding: 8px 6px; font-weight: 500; color: var(--mu); }
+  .seg-btn.active { background: var(--s3); color: var(--tx); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.35), inset 0 0 0 1px var(--bd); }
+  .seg-btn.active .rip { background: rgba(255,255,255,.12); }
+  .bar select, .bar input { background-color: var(--s1); border: 1px solid var(--bd); border-radius: 12px; padding: 10px 12px; font-size: 14px; color: var(--tx); }
+  .bar select { flex: 0 0 38%; min-width: 0; text-overflow: ellipsis; }
+  .bar input[type=search] {
+    padding-left: 36px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b9aa7' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: 12px center;
+  }
+  .bar input::placeholder { color: var(--mu2); }
+
+  /* คิวรออนุมัติ */
+  #pendingBox { background: var(--s1); border: 1px solid rgba(251,191,36,.28); border-radius: 16px; padding: 4px 0; margin: 2px 0 16px; overflow: hidden; }
+  .pending-head { display: flex; align-items: center; gap: 8px; margin: 0; padding: 10px 14px 8px; font-size: 13px; font-weight: 600; color: var(--tx); }
+  .pending-head .ic { width: 16px; height: 16px; color: var(--warn); }
+  .pending-head .cnt { margin-left: auto; background: rgba(251,191,36,.14); color: var(--warn); border-radius: 999px; padding: 1px 9px; font-size: 12px; font-weight: 700; }
+  .pending-item { background: none; border: 0; border-top: 1px solid var(--bd); border-radius: 0; margin: 0; padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+  .pending-item .pi-info { flex: 1; min-width: 0; margin: 0; }
+  .pi-amt { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .pi-tag { background: rgba(251,191,36,.12); color: var(--warn); font-weight: 500; border-radius: 6px; padding: 1px 7px; margin-left: 4px; }
+  .pi-sub, .pi-by { font-size: 12px; color: var(--mu); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pi-actions { flex-shrink: 0; flex-wrap: nowrap; gap: 6px; }
+  .pi-ok { flex: 0 0 auto; }
+  .pi-btn { height: 34px; min-width: 34px; border-radius: 10px; padding: 0 12px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+  .pi-btn .ic { width: 16px; height: 16px; }
+  .pi-view { background: var(--s2); border: 1px solid var(--bd); color: var(--tx); padding: 0; width: 34px; }
+  .pi-ok { background: var(--pos); color: #052e1c; }
+  .pi-no { background: rgba(248,113,113,.12); color: var(--neg); padding: 0; width: 34px; }
+  .pi-wait { color: var(--warn); font-size: 12px; font-weight: 600; }
+
+  /* รายการ: การ์ดต่อวัน + แถวแบบแอปธนาคาร */
+  .list { gap: 14px; }
+  .day { background: var(--s1); border: 1px solid var(--bd); border-radius: 16px; overflow: hidden; }
+  .day .group-date { margin: 0; padding: 11px 14px 9px; font-size: 12.5px; font-weight: 600; color: var(--mu); border-bottom: 1px solid var(--bd); }
+  .day .group-date span:last-child { color: var(--tx); }
+  .day .group-date span:last-child.neg { color: var(--neg); }
+  .item {
+    background: none; border: 0; border-radius: 0; box-shadow: none;
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+    padding: 12px 14px; gap: 12px; cursor: pointer; position: relative;
+    transition: background-color .15s ease;
+  }
+  .item + .item::before { content: ""; position: absolute; top: 0; left: 66px; right: 0; height: 1px; background: var(--bd); }
+  .item:active { transform: none; background: var(--s2); }
+  @media (hover: hover) { .item:hover { transform: none; box-shadow: none; border-color: transparent; background: rgba(255,255,255,.025); } }
+  .item .ava { width: 40px; height: 40px; border-radius: 50%; border: 0; box-shadow: none; background: rgba(52,211,153,.12); color: var(--pos); font-size: 0; }
+  .item .ava.out { background: rgba(248,113,113,.12); color: var(--neg); border: 0; }
+  .item .ava .ic { width: 19px; height: 19px; }
+  .item .info .name { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+  .item .info .name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item .info .name .vf { width: 15px; height: 15px; color: var(--ac); flex-shrink: 0; }
+  .item .info .sub { font-size: 12.5px; color: var(--mu); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item .info .sub .tag { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 6px; padding: 0 6px; margin-left: 2px; vertical-align: 1px; }
+  .tag.ok { background: rgba(63,193,240,.12); color: var(--ac); }
+  .tag.slip { background: rgba(255,255,255,.06); color: var(--mu); }
+  .tag.out { background: rgba(248,113,113,.12); color: var(--neg); }
+  .item .info .note { font-style: normal; color: var(--mu); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item .info .by { font-size: 11.5px; color: var(--mu2); margin-top: 2px; }
+  .item .info .by .ed { color: var(--warn); }
+  .item .amt { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .item .amt b { color: var(--pos); font-size: 15.5px; font-weight: 700; }
+  .item .amt b.amt-out { color: var(--tx); }
+  .acts { display: flex; gap: 4px; }
+  .acts button { width: 30px; height: 30px; border-radius: 9px; border: 1px solid var(--bd); background: var(--s2); color: var(--mu); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; margin: 0; transition: color .15s ease, background .15s ease; }
+  .acts button .ic { width: 15px; height: 15px; }
+  .acts button:active { background: var(--s3); color: var(--tx); }
+  .item .amt .del { display: flex; margin: 0; font-size: 0; color: var(--mu); }
+  .item .amt .del:active { color: var(--neg); }
+  @media (hover: hover) { .acts button:hover { color: var(--tx); background: var(--s3); } .acts .del:hover { color: var(--neg); } }
+  .item.hit { background: rgba(63,193,240,.07); box-shadow: inset 3px 0 0 var(--ac); border: 0; }
+  .item.hit .amt b { text-shadow: none; color: var(--ac); }
+  .slipview { background: var(--s2); border: 1px solid var(--bd); color: var(--tx); box-shadow: none; }
+  .empty { background: var(--s1); border: 1px solid var(--bd); border-radius: 16px; padding: 40px 20px; }
+  .empty .ic { width: 52px; height: 52px; margin: 0 auto; border-radius: 50%; background: var(--s2); color: var(--mu); display: flex; align-items: center; justify-content: center; font-size: 0; }
+  .empty .ic svg { width: 24px; height: 24px; }
+  .empty p { color: var(--mu); line-height: 1.6; }
+  .empty p b { color: var(--tx); }
+
+  /* แถบล่างเต็มกว้าง (แบบแอป) */
+  .tabbar {
+    left: 0; right: 0; bottom: 0; max-width: none; margin: 0; gap: 0;
+    padding: 6px max(8px, calc((100% - 560px) / 2)) calc(6px + env(safe-area-inset-bottom));
+    border: 0; border-top: 1px solid var(--bd); border-radius: 0;
+    background: rgba(10,16,22,.9);
+    -webkit-backdrop-filter: saturate(160%) blur(18px); backdrop-filter: saturate(160%) blur(18px);
+    box-shadow: none;
+  }
+  .tab { gap: 3px; padding: 6px 0 4px; border-radius: 12px; font-size: 11px; font-weight: 500; color: var(--mu2); }
+  .tab .ti { filter: none; width: 24px; height: 24px; }
+  .tab .ti svg { width: 22px; height: 22px; }
+  .tab.active { background: none; box-shadow: none; color: var(--ac); }
+  .tab.active .ti { color: var(--ac); }
+  .tab:active { color: var(--tx); }
+  @media (hover: hover) { .tab:hover { color: var(--tx); } .tab.active:hover { color: var(--ac); } }
+  .tab.center .tc { width: 40px; height: 40px; border-radius: 14px; background: var(--ac); color: #06131c; box-shadow: 0 6px 16px rgba(63,193,240,.28); }
+  .tab.center span:not(.tc) { display: none; }
+  .asst-box { inset: 0 0 calc(64px + env(safe-area-inset-bottom)) 0; }
+  .asst-close { background: var(--s2); border: 1px solid var(--bd); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  #toastBottom { bottom: calc(76px + env(safe-area-inset-bottom)); }
+
+  /* หน้าเต็ม: เพิ่มยอด / ตั้งค่า / รายงาน */
+  .modal { background: var(--bg0); }
+  .sheet { padding-top: calc(18px + env(safe-area-inset-top)); }
+  .sheet h2 { font-size: 20px; font-weight: 700; text-align: left; margin-bottom: 16px; }
+  .field label { font-size: 12.5px; font-weight: 500; color: var(--mu); }
+  .field input, .field select, .field textarea { background-color: var(--s1); border: 1px solid var(--bd); border-radius: 12px; padding: 12px 14px; box-shadow: none; color: var(--tx); transition: border-color .15s ease, box-shadow .15s ease; }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--ac); box-shadow: 0 0 0 3px rgba(63,193,240,.15); }
+  .field input::placeholder, .field textarea::placeholder { color: var(--mu2); }
+  .field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%238b9aa7' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 34px; }
+  .field .amount-in { font-size: 30px; padding: 16px 14px; letter-spacing: -.5px; color: var(--tx); font-variant-numeric: tabular-nums; }
+  .field input[type=number]::-webkit-outer-spin-button, .field input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .field input[type=number] { -moz-appearance: textfield; }
+  .field input[type=date] { min-height: 48px; }
+  .field input[type=date]::-webkit-calendar-picker-indicator { filter: invert(.7); }
+  .io-toggle { background: var(--s1); border: 1px solid var(--bd); border-radius: 12px; padding: 3px; gap: 3px; }
+  .io-btn { display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 9px; padding: 9px 6px; font-weight: 600; color: var(--mu); }
+  .io-btn .ic { width: 17px; height: 17px; }
+  .io-btn.active[data-io="in"] { background: rgba(52,211,153,.14); color: var(--pos); box-shadow: inset 0 0 0 1px rgba(52,211,153,.35); }
+  .io-btn.active[data-io="out"] { background: rgba(248,113,113,.14); color: var(--neg); box-shadow: inset 0 0 0 1px rgba(248,113,113,.35); }
+  .slip-primary { background: var(--s1); border: 1px dashed rgba(63,193,240,.45); border-radius: 14px; padding: 14px; }
+  .slip-primary label { display: flex; align-items: center; gap: 8px; color: var(--tx); font-weight: 600; font-size: 14px; margin-bottom: 10px; }
+  .slip-primary label::before { content: ""; width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; background: rgba(63,193,240,.12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%233fc1f0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21.4 11.1 12.2 20.3a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5'/%3E%3C/svg%3E") center no-repeat; }
+  .slip-primary input[type=file] { background: var(--s2); border: 1px solid var(--bd); border-radius: 12px; padding: 8px; font-size: 13px; color: var(--mu); cursor: pointer; }
+  .slip-primary input[type=file]::file-selector-button { font-family: inherit; font-size: 13px; font-weight: 600; background: var(--ac); color: #06131c; border: 0; border-radius: 9px; padding: 8px 14px; margin-right: 10px; cursor: pointer; }
+  .slip-primary input[type=file]::-webkit-file-upload-button { font-family: inherit; font-size: 13px; font-weight: 600; background: var(--ac); color: #06131c; border: 0; border-radius: 9px; padding: 8px 14px; margin-right: 10px; cursor: pointer; }
+  .autofill-note { color: var(--mu2); }
+  .slipstatus { border-radius: 12px; }
+  .slipstatus.ok { background: rgba(52,211,153,.1); color: #6ee7b7; border-color: rgba(52,211,153,.3); }
+  .slipstatus.busy { background: var(--s1); border-color: var(--bd); }
+  .btns button { border-radius: 12px; padding: 14px; font-size: 15px; font-weight: 600; }
+  .btn-save { background: var(--ac); color: #06131c; }
+  .btn-cancel { background: var(--s1); color: var(--tx); border: 1px solid var(--bd) !important; }
+  @media (hover: hover) { .btns .btn-cancel:hover { background: var(--s2); border-color: var(--bd2) !important; } .btns .btn-save:hover { filter: brightness(1.06); transform: none; } }
+  .btns button:active { transform: scale(.97); }
+  .hint { background: var(--s1); border: 1px solid var(--bd); border-radius: 12px; }
+
+  /* ตั้งค่า */
+  .page-title { font-size: 22px; font-weight: 700; margin: 2px 0 16px; }
+  .acct { display: flex; align-items: center; gap: 12px; background: var(--s1); border: 1px solid var(--bd); border-radius: 16px; padding: 14px; margin-bottom: 22px; }
+  .acct .hava { width: 44px; height: 44px; font-size: 16px; cursor: default; }
+  .acct .who { flex: 1; min-width: 0; }
+  .acct .who small { display: block; font-size: 12px; color: var(--mu); }
+  .acct .who div { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .acct button { flex-shrink: 0; background: var(--s2); border: 1px solid var(--bd); color: var(--tx); border-radius: 10px; padding: 8px 12px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; }
+  #settings .sheet h2.sec { font-size: 13px; font-weight: 600; color: var(--mu); margin: 0 2px 8px; }
+  #settings .sheet hr { border-top-color: var(--bd) !important; }
+  .btns .ic { width: 17px; height: 17px; display: inline-block; vertical-align: -3px; margin-right: 6px; }
+  details.adv { background: var(--s1); border: 1px solid var(--bd); border-radius: 16px; margin-top: 4px; }
+  details.adv > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 14px 16px; font-weight: 600; font-size: 14px; }
+  details.adv > summary::-webkit-details-marker { display: none; }
+  details.adv > summary small { display: block; font-weight: 400; font-size: 12px; color: var(--mu); }
+  details.adv > summary .chev { margin-left: auto; color: var(--mu); transition: transform .2s ease; }
+  details.adv[open] > summary .chev { transform: rotate(90deg); }
+  details.adv .adv-body { padding: 2px 16px 16px; border-top: 1px solid var(--bd); }
+  details.adv .adv-body h2 { margin-top: 16px; }
+  details.adv .hint, details.adv .field input, details.adv .field textarea { background-color: var(--s2); }
+
+  /* รายงาน */
+  #reportBody h2 { font-size: 22px; font-weight: 700; }
+  #reportBody h3 { font-size: 13.5px; font-weight: 600; color: var(--mu); margin: 22px 0 10px; }
+  .rstat div, .toprow { background: var(--s1); border: 1px solid var(--bd); border-radius: 12px; }
+  .rstat div { padding: 12px 8px; }
+  .rstat b { font-size: 15px; font-variant-numeric: tabular-nums; }
+  .toprow b { color: var(--tx); font-variant-numeric: tabular-nums; }
+  .chart { background: var(--s1); border: 1px solid var(--bd); border-radius: 14px; padding: 12px 10px 8px; height: 150px; }
+  .cbar { background: var(--ac); border-radius: 3px 3px 0 0; opacity: .9; }
+  .hm-cell { background: var(--s1); }
+  .hm-cell.l1 { background: rgba(63,193,240,.16); } .hm-cell.l2 { background: rgba(63,193,240,.32); }
+  .hm-cell.l3 { background: rgba(63,193,240,.55); } .hm-cell.l4 { background: var(--ac); color: #06131c; }
+  .hm-cell.today { outline-color: var(--tx); }
+  .cmp-bar i { background: var(--ac); }
+  .cmp-badge.up { background: rgba(52,211,153,.12); color: var(--pos); }
+  .cmp-badge.down { background: rgba(248,113,113,.12); color: var(--neg); }
+
+  /* ล็อกอิน */
+  .login-screen { background: radial-gradient(700px 420px at 50% -120px, rgba(63,193,240,.18), transparent 70%), var(--bg0); }
+  .login-box { background: var(--s1); border: 1px solid var(--bd); border-radius: 24px; padding: 36px 26px 30px; box-shadow: 0 24px 60px rgba(0,0,0,.4); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .login-logo-img { width: 84px; height: 84px; border-radius: 22px; border: 1px solid var(--bd2); box-shadow: 0 10px 30px rgba(63,193,240,.18); }
+  .login-box h1 { font-size: 22px; }
+  .g-btn { border-radius: 12px; padding: 14px; font-size: 15px; box-shadow: none; }
+
+  /* ป้ายแจ้งเตือน */
+  .toast { background: var(--s2); border: 1px solid var(--bd2); border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,.45); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .toast .ti { width: 32px; height: 32px; border-radius: 10px; background: var(--s3); color: var(--tx); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .toast .ti .ic { width: 17px; height: 17px; }
+  .toast.in { border-color: var(--bd2); } .toast.in .ti { background: rgba(52,211,153,.14); color: var(--pos); }
+  .toast.pend { border-color: var(--bd2); } .toast.pend .ti { background: rgba(251,191,36,.14); color: var(--warn); }
+  .toast button { background: var(--ac); border: 0; color: #06131c; border-radius: 9px; }
+
+  /* จอคอม */
+  @media (min-width: 768px) {
+    .wrap { max-width: 880px; }
+    header.appbar { margin: -24px -24px 10px; padding-left: 24px; padding-right: 24px; }
+    header.appbar h1 { font-size: 18px; }
+    .list { display: flex; flex-direction: column; align-items: stretch; gap: 14px; }
+    .top-row .stats { gap: 12px; }
+  }
+  .bar input { min-width: 0; }
+  .item .amt .acts .del { border: 1px solid var(--bd); background: var(--s2); }
+  .pi-sub { white-space: normal; }
+  @media print { .day { border: 0; } .appbar, .tabbar { display: none !important; } }
 </style>
 </head>
 <body>
@@ -590,8 +881,11 @@
   </div>
 </div>
 <div class="wrap">
-  <header>
-    <h1><img src="hurt-logo.jpg" class="hdr-logo" alt="">HURT SHOP</h1>
+  <header class="appbar" id="appbar">
+    <img src="hurt-logo.jpg" class="hdr-logo" alt="">
+    <div class="brand"><h1>HURT SHOP</h1><p id="hdrSub">บัญชีร้าน</p></div>
+    <button class="hbtn" type="button" onclick="focusSearch()" aria-label="ค้นหา" title="ค้นหา"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+    <button class="hava" id="hdrAva" type="button" onclick="setTab(document.querySelectorAll('.tabbar .tab')[4]); openSettings()" aria-label="บัญชีและตั้งค่า" title="บัญชีและตั้งค่า">H</button>
   </header>
 
   <div class="top-row">
@@ -628,7 +922,7 @@
   </div>
   <div class="bar">
     <select id="filterMonth"><option value="all">เลือกเดือน...</option></select>
-    <input id="search" type="search" placeholder="🔍 ค้นหา ชื่อ/ยอดเงิน/ธนาคาร">
+    <input id="search" type="search" placeholder="ค้นหา ชื่อ / ยอดเงิน / ธนาคาร">
   </div>
 
   <div id="pendingBox" style="display:none"></div>
@@ -652,11 +946,11 @@
     <h2 id="modalTitle">เพิ่มยอดโอนเข้า</h2>
     <input type="hidden" id="editId">
     <div class="io-toggle" id="ioToggle">
-      <button type="button" class="io-btn active" data-io="in" onclick="setIO('in')">💰 รับเข้า</button>
-      <button type="button" class="io-btn" data-io="out" onclick="setIO('out')">💸 จ่ายออก</button>
+      <button type="button" class="io-btn active" data-io="in" onclick="setIO('in')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 7 7 17"/><path d="M17 17H7V7"/></svg>รับเข้า</button>
+      <button type="button" class="io-btn" data-io="out" onclick="setIO('out')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>จ่ายออก</button>
     </div>
     <div class="field slip-primary">
-      <label>📎 แนบสลิป แล้วกดบันทึก (ยืนยันกับธนาคารอัตโนมัติ)</label>
+      <label>แนบสลิป แล้วกดบันทึก (ยืนยันกับธนาคารอัตโนมัติ)</label>
       <input id="fSlip" type="file" accept="image/*" onchange="handleSlip(this)">
       <input type="hidden" id="fSlipRef"><input type="hidden" id="fSlipHash"><input type="hidden" id="fSlipVerified">
       <div id="slipStatus" class="slipstatus"></div>
@@ -699,27 +993,30 @@
 <!-- Settings / Real-time Modal -->
 <div class="modal" id="settings">
   <div class="sheet">
-    <div class="field" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card2);border-radius:12px;padding:10px 14px;margin-bottom:16px">
-      <div style="min-width:0"><div style="font-size:11px;color:var(--muted)">เข้าสู่ระบบในชื่อ</div><div id="userEmail" style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">-</div></div>
-      <button onclick="googleSignOut()" style="flex-shrink:0;background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:8px 12px;font-size:13px;cursor:pointer">ออกจากระบบ</button>
+    <h2 class="page-title">ตั้งค่า</h2>
+    <div class="acct">
+      <div class="hava" id="acctAva">H</div>
+      <div class="who"><small>เข้าสู่ระบบในชื่อ</small><div id="userEmail">-</div></div>
+      <button type="button" onclick="googleSignOut()">ออกจากระบบ</button>
     </div>
-    <h2 style="margin-bottom:12px">📤 ส่งออกข้อมูล</h2>
-    <div class="btns" style="margin-bottom:18px">
-      <button class="btn-cancel" style="flex:1" onclick="exportCSV()">📄 CSV</button>
-      <button class="btn-cancel" style="flex:1" onclick="exportExcel()">📊 Excel</button>
-      <button class="btn-cancel" style="flex:1" onclick="exportPDF()">🧾 PDF</button>
+    <h2 class="sec">ส่งออกข้อมูล</h2>
+    <div class="btns" style="margin-bottom:22px">
+      <button class="btn-cancel" style="flex:1" onclick="exportCSV()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h6"/></svg>CSV</button>
+      <button class="btn-cancel" style="flex:1" onclick="exportExcel()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 4v16"/></svg>Excel</button>
+      <button class="btn-cancel" style="flex:1" onclick="exportPDF()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>PDF</button>
     </div>
     <p class="emp-only" style="display:none;color:var(--muted);font-size:13px;text-align:center;margin:14px 0 4px">โหมดพนักงาน — ส่งออกข้อมูลได้ ส่วนตั้งค่าอื่นเฉพาะเจ้าของ</p>
     <div class="btns emp-only" style="display:none;margin-bottom:6px"><button class="btn-cancel" style="flex:1" onclick="closeSettings()">ปิด</button></div>
     <div id="ownerOnlySettings">
-    <hr style="border:none;border-top:1px solid var(--line);margin:4px 0 18px">
-    <h2 style="margin-bottom:12px">🧰 สำรอง / ล้างข้อมูล</h2>
+    <h2 class="sec">สำรอง / ล้างข้อมูล</h2>
     <div class="btns" style="margin-bottom:8px">
-      <button class="btn-cancel" style="flex:1" id="restoreBtn" onclick="restoreBackup()">↩️ กู้คืน</button>
-      <button class="btn-cancel" style="flex:1;color:#fca5a5" id="clearBtn" onclick="clearAll()">🗑️ ล้างข้อมูล</button>
+      <button class="btn-cancel" style="flex:1" id="restoreBtn" onclick="restoreBackup()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>กู้คืน</button>
+      <button class="btn-cancel" style="flex:1;color:#fca5a5" id="clearBtn" onclick="clearAll()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m6 6 1 14h10l1-14"/></svg>ล้างข้อมูล</button>
     </div>
-    <hr style="border:none;border-top:1px solid var(--line);margin:4px 0 18px">
-    <h2>🔄 ตั้งค่า Real-time (Firebase)</h2>
+    <details class="adv" style="margin-top:22px">
+      <summary><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><div>ตั้งค่าขั้นสูง<small>ฐานข้อมูล Real-time และ SlipOK</small></div><svg class="ic chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary>
+      <div class="adv-body">
+    <h2 class="sec">Real-time (Firebase)</h2>
     <div class="hint">
       ทำให้ <b>กรอกเครื่องนึง อีกเครื่องเห็นทันที</b> โดยต่อกับ Firebase ฟรีของ Google
       <ol>
@@ -751,8 +1048,7 @@
       <button class="btn-cancel" style="flex:1" onclick="disconnectRT()">ตัดการเชื่อมต่อ (กลับโหมดออฟไลน์)</button>
     </div>
 
-    <hr style="border:none;border-top:1px solid var(--line);margin:22px 0 18px">
-    <h2 style="margin-bottom:12px">🆓 SlipOK (ฟรี 100 สลิป/เดือน)</h2>
+    <h2 class="sec" style="margin-top:22px">SlipOK (ฟรี 100 สลิป/เดือน)</h2>
     <div class="hint">
       ทางเลือก<b>ฟรีรายเดือน</b> ผ่าน SlipOK — ต้องมี <b>พร็อกซี Cloudflare</b> คั่น (ฟรี ตั้งครั้งเดียว)
       <ol>
@@ -769,6 +1065,9 @@
       <button class="btn-cancel" onclick="closeSettings()">ปิด</button>
       <button class="btn-save" onclick="saveSlipOK()">บันทึก SlipOK</button>
     </div>
+      </div>
+    </details>
+    <div class="btns" style="margin-top:14px"><button class="btn-cancel" onclick="closeSettings()">ปิด</button></div>
     </div><!-- /ownerOnlySettings -->
   </div>
 </div>
@@ -790,7 +1089,7 @@
     <div id="reportBody"></div>
     <div class="btns">
       <button class="btn-cancel" onclick="closeReport()">ปิด</button>
-      <button class="btn-save" onclick="printReport()">🧾 บันทึก PDF</button>
+      <button class="btn-save" onclick="printReport()">บันทึก PDF</button>
     </div>
   </div>
 </div>
@@ -848,7 +1147,28 @@ window._oauthError = '';
   } catch (e) {}
 })();
 
-const APP_VER = 'v7.27';   // โชว์บนหน้า login — เช็คจากภาพหน้าจอได้ว่าเครื่องรันโค้ดรุ่นไหน (กันงงเรื่องแคช)
+const ICN = {
+  'in': '<path d="M17 7 7 17"/><path d="M17 17H7V7"/>',
+  out: '<path d="M7 17 17 7"/><path d="M7 7h10v10"/>',
+  eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  receipt: '<path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  trash: '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m6 6 1 14h10l1-14"/>',
+  shield: '<path d="M12 3 5 6v5c0 4.5 3 8.3 7 9.5 4-1.2 7-5 7-9.5V6z"/><path d="m9 12 2 2 4-4"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/>',
+  chev: '<path d="m9 6 6 6-6 6"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  inbox: '<path d="M3 13h5l1.5 3h5L16 13h5"/><path d="M5.5 5h13L21 13v6H3v-6z"/>',
+  file: '<path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h6"/>',
+  table: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 4v16"/>',
+  printer: '<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/>',
+  restore: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
+  sliders: '<path d="M4 6h10M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>'
+};
+const ico = (n, c) => '<svg class="ic' + (c ? ' ' + c : '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICN[n] || '') + '</svg>';
+const APP_VER = 'v7.28';   // โชว์บนหน้า login — เช็คจากภาพหน้าจอได้ว่าเครื่องรันโค้ดรุ่นไหน (กันงงเรื่องแคช)
 const LKEY = 'bank_transfers_v1';      // local fallback store
 const CFGKEY = 'bank_fb_config';        // saved firebase config (JSON string)
 const ROOMKEY = 'bank_room';            // saved room code
@@ -1087,6 +1407,24 @@ function setTab(el){
   document.querySelectorAll('.tabbar .tab').forEach(t => t.classList.remove('active'));
   if (el) el.classList.add('active');
 }
+/* แถบบน: ทักทาย + วันที่ + อักษรย่อบัญชี */
+const _DOW_TH = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+function updateHeader(){
+  const d = new Date(), h = d.getHours();
+  const hi = h < 11 ? 'สวัสดีตอนเช้า' : h < 16 ? 'สวัสดีตอนบ่าย' : h < 19 ? 'สวัสดีตอนเย็น' : 'สวัสดีตอนค่ำ';
+  const sub = document.getElementById('hdrSub');
+  if (sub) sub.textContent = hi + ' · ' + _DOW_TH[d.getDay()] + ' ' + d.getDate() + ' ' + ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][d.getMonth()];
+  const em = (currentUser && currentUser.email) || '';
+  const ch = em ? em.charAt(0).toUpperCase() : 'H';
+  ['hdrAva', 'acctAva'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = ch; });
+}
+function focusSearch(){
+  const el = document.getElementById('search');
+  const y = el.getBoundingClientRect().top + window.scrollY - 90;
+  window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+  setTimeout(() => el.focus({ preventScroll: true }), 250);
+}
+window.addEventListener('scroll', () => { const a = document.getElementById('appbar'); if (a) a.classList.toggle('scrolled', window.scrollY > 4); }, { passive: true });
 function homeTab(){ setTab(document.querySelector('.tabbar .tab')); }   // ไฮไลต์กลับหน้าแรกเมื่อปิดเมนู
 
 /* ---------- ripple ตอนแตะปุ่ม/เมนู ---------- */
@@ -1131,7 +1469,7 @@ function setIO(m) {
     modalIO === 'out' ? (editing ? 'แก้ไขรายการโอนออก' : 'บันทึกโอนออก')
                       : (editing ? 'แก้ไขรายการ' : 'เพิ่มยอดโอนเข้า');
   const af = document.querySelector('#modal .autofill-note'); if (af) af.style.display = (modalIO === 'out') ? 'none' : '';
-  const sl = document.querySelector('#modal .slip-primary label'); if (sl) sl.textContent = (modalIO === 'out') ? '📎 แนบสลิปโอนออก (ถ้ามี)' : '📎 แนบสลิป แล้วกดบันทึก (ยืนยันกับธนาคารอัตโนมัติ)';
+  const sl = document.querySelector('#modal .slip-primary label'); if (sl) sl.textContent = (modalIO === 'out') ? 'แนบสลิปโอนออก (ถ้ามี)' : 'แนบสลิป แล้วกดบันทึก (ยืนยันกับธนาคารอัตโนมัติ)';
   // สลับฝั่งจริงๆ (ไม่ใช่กดปุ่มเดิมซ้ำ) → ทิ้งผลอ่านเดิม + ล้างค่าที่ OCR เติม (ไม่แตะที่ผู้ใช้พิมพ์เอง) + อ่านสลิปที่แนบอยู่ใหม่
   if (ioChanged) {
     _ocrToken++;
@@ -1609,20 +1947,20 @@ function renderPending() {
   const items = (pendingData || []).slice().sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
   if (!items.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
   box.style.display = 'block';
-  let html = '<div class="pending-head">🕒 รออนุมัติ ' + items.length + ' รายการ</div>';
+  let html = '<div class="pending-head">' + ico('clock') + 'รออนุมัติ<span class="cnt">' + items.length + '</span></div>';
   items.forEach(it => {
     const eid = jsq(it.id);
     const acts = (role === 'owner')
-      ? `<button class="pi-btn pi-ok" onclick="approvePending('${eid}')">✓ อนุมัติ</button><button class="pi-btn pi-no" onclick="rejectPending('${eid}')">✕</button>`
+      ? `<button class="pi-btn pi-ok" onclick="approvePending('${eid}')">${ico('check')}อนุมัติ</button><button class="pi-btn pi-no" title="ปฏิเสธ" aria-label="ปฏิเสธ" onclick="rejectPending('${eid}')">${ico('x')}</button>`
       : '<span class="pi-wait">รออนุมัติ</span>';
     html += `<div class="pending-item">
       <div class="pi-info">
-        <div class="pi-amt">${fmt(amt(it))} ฿ <span class="pi-tag">พนักงานกรอก</span></div>
-        <div class="pi-sub">${esc2(it.name || 'ไม่ระบุชื่อ')} · ${esc2(it.bank || '-')} · ${esc2(it.date || '')}</div>
-        <div class="pi-by">ส่งโดย ${esc2(it.submittedBy || '-')}</div>
+        <div class="pi-amt">${fmt(amt(it))} ฿<span class="pi-tag">พนักงานกรอก</span></div>
+        <div class="pi-sub">${esc2(it.name || 'ไม่ระบุชื่อ')} · ${esc2(it.bank || '-')} · ${esc2(it.date ? thaiDate(it.date) : '')}</div>
+        <div class="pi-by">ส่งโดย ${esc2(who(it.submittedBy) || '-')}</div>
       </div>
       <div class="pi-actions">
-        <button class="pi-btn pi-view" onclick="openSlip('${eid}')">ดูสลิป</button>
+        <button class="pi-btn pi-view" title="ดูสลิป" aria-label="ดูสลิป" onclick="openSlip('${eid}')">${ico('eye')}</button>
         ${acts}
       </div>
     </div>`;
@@ -1719,14 +2057,14 @@ function del(id) {
   _slipDelTimers[id] = setTimeout(() => _dropSlipImage(id), UNDO_MS + 500);
   vib(12);
   toast({
-    where: 'bottom', icon: '🗑️', ms: UNDO_MS,
+    where: 'bottom', icon: 'trash', ms: UNDO_MS,
     html: 'ลบแล้ว: ' + esc2(snapshot.name || 'ไม่ระบุชื่อ') + ' <b>' + (isOut(snapshot) ? '−' : '+') + fmt(amt(snapshot)) + ' ฿</b>',
-    action: { label: '↩️ ย้อนกลับ', fn: () => {
+    action: { label: 'ย้อนกลับ', fn: () => {
       clearTimeout(_slipDelTimers[id]); delete _slipDelTimers[id];
       if (data.some(x => x.id === id)) return;   // มีคนกู้/เพิ่มกลับไปแล้ว
       putRecord(snapshot);
       vib(10);
-      toast({ where: 'bottom', icon: '✅', html: 'กู้คืนรายการแล้ว', ms: 2200 });
+      toast({ where: 'bottom', icon: 'check', html: 'กู้คืนรายการแล้ว', ms: 2200 });
     } }
   });
 }
@@ -1924,6 +2262,7 @@ function render() {
 
   const tm = todayStr().slice(0,7), td = todayStr();
   animateNum(document.getElementById('thisMonth'), all.filter(x => x.date.slice(0,7) === tm).reduce((s,x) => s + signedAmt(x), 0), fmtShort);
+  updateHeader();
   animateNum(document.getElementById('today'), all.filter(x => x.date === td).reduce((s,x) => s + signedAmt(x), 0), fmtShort);
 
   buildHomeCharts(all);
@@ -1934,42 +2273,48 @@ function render() {
   if (!rows.length) {
     _staggerNext = false;
     list.innerHTML = q
-      ? '<div class="empty"><div class="ic">🔍</div><p>ไม่พบ' + (qAmt !== null ? 'ยอด <b>' + fmt(qAmt) + ' ฿</b>' : ' "' + esc(q) + '"') +
+      ? '<div class="empty"><div class="ic">' + ico('search') + '</div><p>ไม่พบ' + (qAmt !== null ? 'ยอด <b>' + fmt(qAmt) + ' ฿</b>' : ' "' + esc(q) + '"') +
         (dateRange !== 'all' ? '<br><small>ตอนนี้ดูเฉพาะช่วง "' + esc(rangeLabel().replace('ยอดลูกค้า ', '')) + '" — ลองกด "ทั้งหมด"</small>' : '') + '</p></div>'
-      : '<div class="empty"><div class="ic">📭</div><p>ยังไม่มีรายการ<br>กดปุ่มด้านล่าง เพิ่มยอด + แนบสลิป</p></div>';
+      : '<div class="empty"><div class="ic">' + ico('inbox') + '</div><p>ยังไม่มีรายการ<br>กดปุ่ม + ด้านล่าง เพื่อเพิ่มยอดและแนบสลิป</p></div>';
     return;
   }
   let html = '', lastDate = '';
   rows.forEach(it => {
     if (it.date !== lastDate) {
+      if (lastDate) html += '</div></section>';
       lastDate = it.date;
       const dayNet = rows.filter(x => x.date === it.date).reduce((s,x) => s + signedAmt(x), 0);
-      html += `<div class="group-date"><span>${thaiDate(it.date)}</span><span>${(dayNet<0?'−':'')+fmt(Math.abs(dayNet))} ฿</span></div>`;
+      html += `<section class="day"><div class="group-date"><span>${thaiDate(it.date)}</span><span${dayNet < 0 ? ' class="neg"' : ''}>${(dayNet<0?'−':'')+fmt(Math.abs(dayNet))} ฿</span></div><div class="day-rows">`;
     }
     const eid = jsq(it.id);
     const out = isOut(it);
+    const tag = out ? '<span class="tag out">โอนออก</span>'
+      : (it.slipVerified ? '<span class="tag ok">ยืนยันธนาคารแล้ว</span>'
+      : ((it.slipRef || it.slipHash) ? '<span class="tag slip">มีสลิป' + (it.slipRef ? ' · QR' : '') + '</span>' : ''));
     html += `
       <div class="item${amtHit(it) ? ' hit' : ''}" onclick="openModal('${eid}')">
-        <div class="ava${out ? ' out' : ''}">${out ? '↑' : '↓'}</div>
+        <div class="ava${out ? ' out' : ''}">${ico(out ? 'out' : 'in')}</div>
         <div class="info">
-          <div class="name">${esc(it.name)}</div>
-          <div class="sub">${esc(it.bank) || 'ไม่ระบุธนาคาร'}</div>
+          <div class="name"><span>${esc(it.name) || 'ไม่ระบุชื่อ'}</span>${it.slipVerified && !out ? ico('shield', 'vf') : ''}</div>
+          <div class="sub">${esc(it.bank) || 'ไม่ระบุธนาคาร'} ${tag}</div>
           ${it.note ? `<div class="note">${esc(it.note)}</div>` : ''}
           ${byLine(it, esc)}
-          ${out ? `<div class="slip out-tag">💸 โอนออก</div>` : (it.slipVerified ? `<div class="slip has">🛡️ ยืนยันธนาคารแล้ว</div>` : ((it.slipRef || it.slipHash) ? `<div class="slip has">📎 มีสลิป${it.slipRef ? ' · QR ✓' : ''}</div>` : ''))}
-          ${(it.hasImg || it.slipVerified) ? `<button class="slipview" onclick="event.stopPropagation(); openSlip('${eid}')">👁️ ดูสลิป</button>` : ''}
-          ${!out ? `<button class="slipview" onclick="event.stopPropagation(); makeReceipt('${eid}')">🧾 ใบยืนยัน</button>` : ''}
         </div>
         <div class="amt">
           <b class="${out ? 'amt-out' : ''}">${out ? '−' : '+'}${fmt(amt(it))}</b>
-          <button class="del" onclick="event.stopPropagation(); del('${eid}')">ลบ</button>
+          <div class="acts">
+            ${(it.hasImg || it.slipVerified) ? `<button type="button" title="ดูสลิป" aria-label="ดูสลิป" onclick="event.stopPropagation(); openSlip('${eid}')">${ico('eye')}</button>` : ''}
+            ${!out ? `<button type="button" title="ใบยืนยัน" aria-label="ใบยืนยัน" onclick="event.stopPropagation(); makeReceipt('${eid}')">${ico('receipt')}</button>` : ''}
+            <button type="button" class="del" title="ลบ" aria-label="ลบ" onclick="event.stopPropagation(); del('${eid}')">${ico('trash')}</button>
+          </div>
         </div>
       </div>`;
   });
+  if (lastDate) html += '</div></section>';
   list.innerHTML = html;
   if (_staggerNext) {   // เปลี่ยนช่วงเวลา/เดือน → รายการเด้งเข้าทีละใบ
     _staggerNext = false;
-    [...list.children].slice(0, 16).forEach((el, i) => { el.classList.add('pop-in'); el.style.animationDelay = (i * 35) + 'ms'; });
+    [...list.children].slice(0, 8).forEach((el, i) => { el.classList.add('pop-in'); el.style.animationDelay = (i * 35) + 'ms'; });
   }
 }
 
@@ -2027,12 +2372,12 @@ function buildReport(){
   hmHTML+='</div>';
   const now=new Date();
   document.getElementById('reportBody').innerHTML =
-    '<h2>📊 รายงานสรุป HURT SHOP</h2>'+
+    '<h2>รายงานสรุป</h2>'+
     '<div class="rsub">ออก ณ '+now.getDate()+' '+MON_TH[now.getMonth()]+' '+(now.getFullYear()+543)+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+' น.</div>'+
     '<div class="rstat"><div><span>ยอดคงเหลือ</span><b>'+(grand<0?'−':'')+fmt(Math.abs(grand))+' ฿</b></div><div><span>รับเข้าทั้งหมด</span><b>'+fmt(grandIn)+' ฿</b></div><div><span>จ่ายออกทั้งหมด</span><b>'+fmt(grandOut)+' ฿</b></div></div>'+
     '<div class="rsub" style="margin-top:6px">เดือนนี้ (สุทธิ) '+(monthTotal<0?'−':'')+fmt(Math.abs(monthTotal))+' ฿ · วันนี้ (สุทธิ) '+(todayTotal<0?'−':'')+fmt(Math.abs(todayTotal))+' ฿</div>'+
     '<h3>เดือนนี้ vs เดือนก่อน (รับเข้า) '+cmpBadge+'</h3>'+cmpHTML+
-    '<h3>🗓️ ปฏิทินรายรับ '+monthLabel(tm)+'</h3>'+hmHTML+
+    '<h3>ปฏิทินรายรับ '+monthLabel(tm)+'</h3>'+hmHTML+
     '<h3>ยอดรับเข้ารายวัน (14 วันล่าสุด)</h3><div class="chart">'+dayBars+'</div>'+
     '<h3>ยอดรับเข้ารายเดือน (6 เดือนล่าสุด)</h3><div class="chart">'+monBars+'</div>'+
     '<h3>ลูกค้าจ่ายเยอะสุด (Top 5)</h3><div class="toplist">'+topHTML+'</div>';
@@ -2151,7 +2496,7 @@ function renderGoal() {
   if (!goalAmt) {
     if (role !== 'owner') { box.style.display = 'none'; return; }
     box.style.display = 'flex';
-    box.innerHTML = '<div class="goal-ring">🎯</div><div class="goal-info"><div class="gt">เป้ายอดเดือนนี้</div><div class="gv">แตะเพื่อตั้งเป้า</div><div class="gs">จะมีวงแหวนวิ่งบอกความคืบหน้าให้ทุกวัน</div></div><div class="goal-edit">›</div>';
+    box.innerHTML = '<div class="goal-ring">' + ico('target') + '</div><div class="goal-info"><div class="gt">เป้ายอดเดือนนี้</div><div class="gv">แตะเพื่อตั้งเป้า</div><div class="gs">จะมีวงแหวนวิ่งบอกความคืบหน้าให้ทุกวัน</div></div><div class="goal-edit">' + ico('chev') + '</div>';
     return;
   }
   const pct = Math.round(got / goalAmt * 100);
@@ -2160,14 +2505,14 @@ function renderGoal() {
   box.style.display = 'flex';
   box.innerHTML =
     '<div class="goal-ring"><svg viewBox="0 0 60 60">' +
-    '<defs><linearGradient id="goalGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4cc9f0"/><stop offset="1" stop-color="#00a4e4"/></linearGradient></defs>' +
+    '<defs><linearGradient id="goalGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3fc1f0"/><stop offset="1" stop-color="#8b7cf6"/></linearGradient></defs>' +
     '<circle class="gr-bg" cx="30" cy="30" r="25"/>' +
     '<circle class="gr-fg" cx="30" cy="30" r="25" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + C.toFixed(1) + '"/>' +
     '</svg><b>' + Math.min(999, pct) + '%</b></div>' +
     '<div class="goal-info"><div class="gt">เป้ายอดเดือนนี้ · ' + fmt(goalAmt) + ' ฿</div>' +
     '<div class="gv">' + fmt(got) + ' ฿</div>' +
-    '<div class="gs">' + (pct >= 100 ? '🎉 ทะลุเป้าแล้ว เก่งมาก!' : 'อีก ' + fmt(Math.max(0, goalAmt - got)) + ' ฿ ถึงเป้า') + '</div></div>' +
-    (role === 'owner' ? '<div class="goal-edit">✎</div>' : '');
+    '<div class="gs">' + (pct >= 100 ? 'ทะลุเป้าแล้ว เก่งมาก!' : 'อีก ' + fmt(Math.max(0, goalAmt - got)) + ' ฿ ถึงเป้า') + '</div></div>' +
+    (role === 'owner' ? '<div class="goal-edit">' + ico('chev') + '</div>' : '');
   requestAnimationFrame(() => requestAnimationFrame(() => {   // ให้เบราว์เซอร์วาดค่าเริ่มก่อน ค่อยเลื่อน → ring วิ่ง
     const fg = box.querySelector('.gr-fg'); if (fg) fg.style.strokeDashoffset = off.toFixed(1);
   }));
@@ -2202,7 +2547,7 @@ function buildHomeCharts(all) {
   const dots = pts.map((p, i) => vals[i] > 0 ? '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3"/>' : '').join('');
   document.getElementById('hcLine').innerHTML =
     '<svg class="hc-line' + (_reduceMotion ? '' : ' animate') + '" viewBox="0 0 ' + W + ' ' + H + '" style="--len:' + Math.ceil(len + 10) + '">' +
-    '<defs><linearGradient id="hcArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(0,164,228,.38)"/><stop offset="1" stop-color="rgba(0,164,228,0)"/></linearGradient></defs>' +
+    '<defs><linearGradient id="hcArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(63,193,240,.28)"/><stop offset="1" stop-color="rgba(63,193,240,0)"/></linearGradient></defs>' +
     '<path class="area" d="' + area + '"/><path class="stroke" d="' + line + '"/>' + dots + '</svg>' +
     '<div class="hc-days">' + days.map(d => '<span>' + Number(d.slice(8)) + '</span>').join('') + '</div>';
   // โดนัทแยกธนาคาร (top 4 + อื่นๆ)
@@ -2212,7 +2557,7 @@ function buildHomeCharts(all) {
   const rest = banks.slice(4).reduce((s, b) => s + b[1], 0);
   if (rest > 0) top.push(['อื่นๆ', rest]);
   const tot = top.reduce((s, b) => s + b[1], 0) || 1;
-  const DC = ['#00a4e4', '#22c55e', '#f59e0b', '#a78bfa', '#64748b'];
+  const DC = ['#3fc1f0', '#34d399', '#fbbf24', '#8b7cf6', '#66778a'];
   const R = 40, CC = 2 * Math.PI * R;
   let acc = 0, segs = '';
   top.forEach((b, i) => {
@@ -2237,7 +2582,7 @@ function buildHomeCharts(all) {
     if (Math.abs(tx - cx) > 0.02 || Math.abs(ty - cy) > 0.02) raf = requestAnimationFrame(loop);
     else raf = null;
   }
-  function aim(x, y) { tx = Math.max(-8, Math.min(8, x)); ty = Math.max(-8, Math.min(8, y)); if (!raf) raf = requestAnimationFrame(loop); }
+  function aim(x, y) { tx = Math.max(-4, Math.min(4, x)); ty = Math.max(-4, Math.min(4, y)); if (!raf) raf = requestAnimationFrame(loop); }
   card.addEventListener('pointermove', e => {
     const r = card.getBoundingClientRect();
     aim(((e.clientX - r.left) / r.width - 0.5) * 12, ((e.clientY - r.top) / r.height - 0.5) * 10);
@@ -2361,9 +2706,9 @@ function who(email) {
 // บรรทัด "บันทึกโดย" ใต้รายการ — รายการเก่าก่อนมีฟีเจอร์นี้ไม่มีข้อมูล จะไม่แสดง
 function byLine(it, esc) {
   const parts = [];
-  if (it.approvedBy) parts.push('👤 ' + esc(who(it.submittedBy) || '-') + ' · อนุมัติโดย ' + esc(who(it.approvedBy)));
-  else if (it.createdBy) parts.push('👤 ' + esc(who(it.createdBy)));
-  if (it.edited) parts.push('<span class="ed">✏️ แก้ยอด' + (it.editedBy ? 'โดย ' + esc(who(it.editedBy)) : 'แล้ว') + '</span>');
+  if (it.approvedBy) parts.push('โดย ' + esc(who(it.submittedBy) || '-') + ' · อนุมัติโดย ' + esc(who(it.approvedBy)));
+  else if (it.createdBy) parts.push('โดย ' + esc(who(it.createdBy)));
+  if (it.edited) parts.push('<span class="ed">แก้ยอด' + (it.editedBy ? 'โดย ' + esc(who(it.editedBy)) : 'แล้ว') + '</span>');
   return parts.length ? '<div class="by">' + parts.join(' · ') + '</div>' : '';
 }
 // "590" / "1,200" / "590฿" / "590 บาท" → 590 ; อย่างอื่น → null
@@ -2379,7 +2724,7 @@ function toast(o) {
   if (!box) return () => {};
   const el = document.createElement('div');
   el.className = 'toast' + (o.kind ? ' ' + o.kind : '');
-  el.innerHTML = '<span class="ti">' + (o.icon || '') + '</span><div class="tt">' + o.html + '</div>';
+  el.innerHTML = '<span class="ti">' + (ICN[o.icon] ? ico(o.icon) : (o.icon || '')) + '</span><div class="tt">' + o.html + '</div>';
   let timer = null, gone = false;
   const close = () => { if (gone) return; gone = true; clearTimeout(timer); el.classList.add('bye'); setTimeout(() => el.remove(), 260); };
   if (o.action) {
@@ -2419,11 +2764,11 @@ function notifyNewRecords(list) {
     (x.createdBy || '').toLowerCase() !== me && (x.approvedBy || '').toLowerCase() !== me);
   if (!inc.length) return;
   if (inc.length > 3) {
-    toast({ icon: '💰', kind: 'in', ms: 7000, html: '<b>เงินเข้าใหม่ ' + inc.length + ' รายการ</b> รวม ' + fmt(inc.reduce((s, x) => s + amt(x), 0)) + ' ฿' });
+    toast({ icon: 'in', kind: 'in', ms: 7000, html: '<b>เงินเข้าใหม่ ' + inc.length + ' รายการ</b> รวม ' + fmt(inc.reduce((s, x) => s + amt(x), 0)) + ' ฿' });
   } else {
     inc.forEach(x => {
-      const meta = [x.bank, who(x.approvedBy ? x.submittedBy : x.createdBy) && ('โดย ' + who(x.approvedBy ? x.submittedBy : x.createdBy)), x.slipVerified ? '🛡️ ยืนยันธนาคาร' : ''].filter(Boolean).join(' · ');
-      toast({ icon: '💰', kind: 'in', ms: 6000, html: '<b>+' + fmt(amt(x)) + ' ฿</b> จาก ' + esc2(x.name || 'ไม่ระบุชื่อ') + (meta ? '<small>' + esc2(meta) + '</small>' : '') });
+      const meta = [x.bank, who(x.approvedBy ? x.submittedBy : x.createdBy) && ('โดย ' + who(x.approvedBy ? x.submittedBy : x.createdBy)), x.slipVerified ? 'ยืนยันธนาคารแล้ว' : ''].filter(Boolean).join(' · ');
+      toast({ icon: 'in', kind: 'in', ms: 6000, html: '<b>+' + fmt(amt(x)) + ' ฿</b> จาก ' + esc2(x.name || 'ไม่ระบุชื่อ') + (meta ? '<small>' + esc2(meta) + '</small>' : '') });
     });
   }
   ting(); vib([14, 60, 14]);
@@ -2437,7 +2782,7 @@ function notifyNewPending(list) {
   updateTitle();
   if (role !== 'owner' || !fresh.length) return;
   fresh.slice(0, 3).forEach(x => toast({
-    icon: '🕒', kind: 'pend', ms: 8000,
+    icon: 'clock', kind: 'pend', ms: 8000,
     html: '<b>รออนุมัติ ' + fmt(amt(x)) + ' ฿</b> ' + esc2(x.name || '') + '<small>ส่งโดย ' + esc2(who(x.submittedBy) || '-') + '</small>',
     action: { label: 'ดู', fn: () => { homeTab(); const b = document.getElementById('pendingBox'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }
   }));
@@ -2744,6 +3089,7 @@ function startApp(room) { if (started) return; started = true; connectRT(activeC
       role = isOwnerEmail(user.email) ? 'owner' : 'employee';
       document.body.classList.toggle('role-employee', role === 'employee');
       const ue = document.getElementById('userEmail'); if (ue) ue.textContent = user.email + (role === 'employee' ? ' (พนักงาน)' : '');
+      updateHeader();
       hideLogin();
       startApp(ac.room);
     } else if (user) {
