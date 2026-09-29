@@ -147,6 +147,13 @@
   .slip-lightbox img { max-width: 100%; max-height: 82vh; border-radius: 14px; box-shadow: 0 12px 44px rgba(0,0,0,.7); }
   .slip-lb-msg { color: #cfeef7; font-size: 14px; margin-top: 14px; text-align: center; }
   .slip-lb-close { color: #cfeef7; font-size: 13px; margin-top: 16px; opacity: .8; }
+  .slip-lightbox img { max-height: calc(100vh - 150px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); -webkit-touch-callout: default; }
+  .lb-bar { display: flex; gap: 10px; margin-top: 16px; width: 100%; max-width: 420px; }
+  .lb-btn { flex: 1; height: 48px; border-radius: 12px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.08); color: #fff; font: inherit; font-size: 15px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+  .lb-btn.pri { background: var(--ac); border-color: transparent; color: #06131c; }
+  .lb-btn .ic { width: 18px; height: 18px; }
+  .lb-btn[hidden] { display: none; }
+  .lb-btn:active { transform: scale(.97); }
   /* ป๊อปอัพผู้ช่วย (iframe) */
   .asst-modal { position: fixed; inset: 0; z-index: 30; background: var(--bg); display: none; }
   .asst-modal.show { display: block; animation: fade .2s ease; }
@@ -1435,7 +1442,7 @@ Object.assign(ICN, {
 const BANK_UI = { 'กสิกรไทย': ['K', '#138f2d'], 'ไทยพาณิชย์': ['SCB', '#4e2e7f'], 'กรุงเทพ': ['BBL', '#1e4598'], 'กรุงไทย': ['KTB', '#1ba5e1'],
   'กรุงศรีอยุธยา': ['BAY', '#fec43b', '#3b2a00'], 'ทหารไทยธนชาต': ['ttb', '#1453ff'], 'ออมสิน': ['GSB', '#eb198d'], 'พร้อมเพย์': ['PP', '#1d3f73'], 'TrueMoney': ['TM', '#f47920'] };
 const ico = (n, c) => '<svg class="ic' + (c ? ' ' + c : '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICN[n] || '') + '</svg>';
-const APP_VER = 'v7.30';   // โชว์บนหน้า login — เช็คจากภาพหน้าจอได้ว่าเครื่องรันโค้ดรุ่นไหน (กันงงเรื่องแคช)
+const APP_VER = 'v7.31';   // โชว์บนหน้า login — เช็คจากภาพหน้าจอได้ว่าเครื่องรันโค้ดรุ่นไหน (กันงงเรื่องแคช)
 const LKEY = 'bank_transfers_v1';      // local fallback store
 const CFGKEY = 'bank_fb_config';        // saved firebase config (JSON string)
 const ROOMKEY = 'bank_room';            // saved room code
@@ -1736,7 +1743,7 @@ function sheetOpened(id) {   // หน้าเต็มเปิด → ดั�
 }
 function sheetClosed() { try { if (history.state && history.state.sheet) { _popByCode = true; history.back(); } } catch (e) {} }
 function closeTop() {
-  const lb = document.querySelector('#slipLightbox.show'); if (lb) { lb.classList.remove('show'); return true; }
+  const lb = document.querySelector('#slipLightbox.show'); if (lb) { if (history.state && history.state.lb) closeSlipLb(); else lb.classList.remove('show'); return true; }
   const m = document.querySelector('.modal.show, .asst-modal.show'); if (!m) return false;
   const f = { modal: closeModal, settings: closeSettings, report: closeReport, asstModal: closeAssistant, approveSheet: closeApprove }[m.id];
   if (f) { f(); return true; }
@@ -2436,11 +2443,18 @@ async function openSlip(id) {
   let box = document.getElementById('slipLightbox');
   if (!box) {
     box = document.createElement('div'); box.id = 'slipLightbox'; box.className = 'slip-lightbox';
-    box.innerHTML = '<img id="slipLbImg" alt="สลิป" style="display:none"><div id="slipLbMsg" class="slip-lb-msg"></div><div class="slip-lb-close">แตะเพื่อปิด</div>';
-    box.addEventListener('click', () => { box.classList.remove('show'); try { if (history.state && history.state.lb) { _popByCode = true; history.back(); } } catch (e) {} });
+    box.innerHTML = '<img id="slipLbImg" alt="สลิป" style="display:none"><div id="slipLbMsg" class="slip-lb-msg"></div>' +
+      '<div class="lb-bar"><button type="button" class="lb-btn pri" id="slipLbSave" hidden>' + ico('download') + 'บันทึกรูป</button>' +
+      '<button type="button" class="lb-btn" id="slipLbClose">' + ico('x') + 'ปิด</button></div>';
+    // ปิดเมื่อแตะพื้นหลัง/ปุ่มปิด — แตะที่รูปไม่ปิด (กดค้างที่รูปเพื่อบันทึกแบบเดิมได้)
+    box.addEventListener('click', e => { if (e.target === box || e.target.closest('#slipLbClose')) closeSlipLb(); });
+    box.querySelector('#slipLbSave').addEventListener('click', e => { e.stopPropagation(); saveSlipImage(); });
     document.body.appendChild(box);
   }
   const imgEl = document.getElementById('slipLbImg'), msg = document.getElementById('slipLbMsg');
+  const saveBtn = document.getElementById('slipLbSave'); saveBtn.hidden = true;
+  const rec = (data || []).find(x => String(x.id) === String(id)) || (pendingData || []).find(x => String(x.id) === String(id)) || {};
+  box.dataset.fname = 'slip_' + ([rec.date, rec.amount != null ? amt(rec) + 'THB' : ''].filter(Boolean).join('_') || 'x') + '_' + String(id).replace(/[^A-Za-z0-9]/g, '').slice(-8) + '.jpg';   // ชื่อไฟล์ภาษาอังกฤษ (บางเครื่องไม่รับชื่อไทย)
   imgEl.style.display = 'none'; msg.style.display = 'block'; msg.textContent = 'กำลังโหลดสลิป…';
   if (!box.classList.contains('show')) { try { history.pushState({ lb: 1, sheet: history.state && history.state.sheet }, ''); } catch (e) {} }
   box.classList.add('show');
@@ -2449,9 +2463,33 @@ async function openSlip(id) {
     const snap = await ref.child(id).once('value');
     const v = snap.val();
     const src = (v && typeof v === 'object') ? v.img : v;
-    if (src) { imgEl.src = src; imgEl.style.display = 'block'; msg.style.display = 'none'; }
+    if (src) { imgEl.src = src; imgEl.style.display = 'block'; msg.style.display = 'none'; saveBtn.hidden = false; }
     else { msg.textContent = 'ไม่พบรูปสลิป (อาจเป็นรายการเก่าก่อนเปิดฟีเจอร์นี้)'; }
   } catch (e) { msg.textContent = 'โหลดสลิปไม่ได้: ' + (e.message || ''); }
+}
+function closeSlipLb() {
+  const box = document.getElementById('slipLightbox'); if (!box) return;
+  box.classList.remove('show');
+  try { if (history.state && history.state.lb) { _popByCode = true; history.back(); } } catch (e) {}
+}
+// บันทึกรูปสลิปลงเครื่อง: มือถือ = เปิดเมนูแชร์ (มี "บันทึกรูปภาพ" ลงคลังรูป) · คอม/เครื่องที่แชร์ไฟล์ไม่ได้ = ดาวน์โหลดไฟล์
+async function saveSlipImage() {
+  const box = document.getElementById('slipLightbox'), img = document.getElementById('slipLbImg');
+  if (!img || !img.src) return;
+  const fname = (box && box.dataset.fname) || 'slip.jpg';
+  try {
+    const blob = await (await fetch(img.src)).blob();
+    const file = new File([blob], fname, { type: blob.type || 'image/jpeg' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file] }); return; }
+      catch (e) { if (e && e.name === 'AbortError') return; }   // ผู้ใช้กดยกเลิกเมนูแชร์
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = fname;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    toast({ where: 'bottom', icon: 'download', html: 'บันทึกรูปสลิปแล้ว<small>' + esc2(fname) + '</small>', ms: 2600 });
+  } catch (e) { alert('บันทึกรูปไม่สำเร็จ — กดค้างที่รูปแล้วเลือก "บันทึกรูปภาพ" แทนได้'); }
 }
 async function handleSlip(input) {
   _ocrToken++;   // ยกเลิกผลอ่านสลิปใบก่อน (ถ้ายังอ่านค้างอยู่)
