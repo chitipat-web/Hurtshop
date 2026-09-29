@@ -216,7 +216,7 @@
 <div id="quick"></div>
 
 <div id="inputbar">
-  <input id="input" type="text" placeholder="ถามได้เลย เช่น ยอดวันนี้เท่าไหร่..." autocomplete="off"
+  <input id="input" type="text" placeholder="ถามได้เลย เช่น สมชายเดือนนี้โอนกี่ครั้ง" autocomplete="off"
          onkeydown="if(event.key==='Enter')send()">
   <button onclick="send()" aria-label="ส่ง">➤</button>
 </div>
@@ -331,7 +331,12 @@ function sortRecent(list){
   return [...list].sort((a,b) => (b.date||'').localeCompare(a.date||'') || String(b.id||'').localeCompare(String(a.id||'')));
 }
 
-/* ═══════════ สมองผู้ช่วย ═══════════ */
+/* ═══════════ สมองผู้ช่วย: แยกคำถาม → เงื่อนไข (ใคร/เมื่อไหร่/ยอด/ธนาคาร/ประเภท/คนบันทึก) → คำนวณจากข้อมูลจริง ═══════════ */
+let pendingData = [];
+let goalAmt = 0;
+let currentUser = null;
+let lastQ = null;   // คำถามก่อนหน้า — ให้ถามต่อแบบ "แล้วเดือนก่อนล่ะ" ได้
+
 function summaryReply(list, label){
   if(!list.length) return '📊 ' + label + ': ยังไม่มีรายการเลยค่ะ';
   const net = sum(list), tIn = sumIn(list), tOut = sumOut(list);
@@ -340,153 +345,475 @@ function summaryReply(list, label){
   let s = '📊 ' + label + '\n' + 'ยอดสุทธิ: ' + fmt(net) + ' ฿';
   if (tOut > 0) s += '\nรับเข้า: ' + fmt(tIn) + ' ฿ · จ่ายออก: −' + fmt(tOut) + ' ฿';
   s += '\nจำนวน: ' + list.length + ' รายการ (เงินเข้าตรวจสลิปแล้ว ' + verified + '/' + inList.length + ')';
-  if (nIn > 0) s += '\nเฉลี่ยเงินเข้า: ' + fmt(tIn/nIn) + ' ฿/รายการ';
+  if (nIn > 0) s += '\nเฉลี่ยเงินเข้า: ' + fmt(Math.round(tIn/nIn*100)/100) + ' ฿/รายการ';
   return s;
+}
+
+/* ── วันที่ ── */
+const MON_S = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function addDays(s, n){ const [y,m,d] = s.split('-').map(Number); return localDateStr(new Date(y, m-1, d+n)); }
+function dateOf(y, m, d){ return localDateStr(new Date(y, m-1, d)); }
+function daysBetween(a, b){ const [y1,m1,d1] = a.split('-').map(Number), [y2,m2,d2] = b.split('-').map(Number); return Math.round((new Date(y2,m2-1,d2) - new Date(y1,m1-1,d1)) / 864e5); }
+function monthPeriod(y, m){ return { from: dateOf(y, m, 1), to: dateOf(y, m+1, 0), label: MON_TH[m-1] + ' ' + (y+543), kind: 'month' }; }
+function dayPeriod(s, label){ return { from: s, to: s, label: label || thaiDate(s), kind: 'day' }; }
+function yearFrom(tok){   // "69" / "2569" / "2026" → ค.ศ. ; อย่างอื่น (เช่น 500) = ไม่ใช่ปี
+  if(!tok) return null;
+  let y = Number(tok);
+  if(tok.length === 2 && y >= 60 && y <= 99) return y + 2500 - 543;
+  if(y >= 2500 && y <= 2700) return y - 543;
+  if(y >= 2000 && y <= 2150) return y;
+  return null;
+}
+const MONTHS = [
+  [1,  'มกราคม|มกรา|ม\\.ค\\.?', 'มค'],   [2,  'กุมภาพันธ์|กุมภา|ก\\.พ\\.?', 'กพ'],
+  [3,  'มีนาคม|มีนา|มี\\.ค\\.?', 'มีค'], [4,  'เมษายน|เมษา|เม\\.ย\\.?', 'เมย'],
+  [5,  'พฤษภาคม|พฤษภา|พ\\.ค\\.?', 'พค'], [6,  'มิถุนายน|มิถุนา|มิ\\.ย\\.?', 'มิย'],
+  [7,  'กรกฎาคม|กรกฏาคม|กรกฎา|กรกฏา|ก\\.ค\\.?', 'กค'], [8,  'สิงหาคม|สิงหา|ส\\.ค\\.?', 'สค'],
+  [9,  'กันยายน|กันยา|ก\\.ย\\.?', 'กย'],   [10, 'ตุลาคม|ตุลา|ต\\.ค\\.?', 'ตค'],
+  [11, 'พฤศจิกายน|พฤศจิกา|พฤศจิ|พ\\.ย\\.?', 'พย'], [12, 'ธันวาคม|ธันวา|ธ\\.ค\\.?', 'ธค'],
+];
+const WEEKDAYS = { 'อาทิตย์':0, 'จันทร์':1, 'อังคาร':2, 'พุธ':3, 'พฤหัสบดี':4, 'พฤหัส':4, 'ศุกร์':5, 'เสาร์':6 };
+// หาช่วงเวลาทั้งหมดในประโยค (เรียงตามตำแหน่ง) — คืน periods + ข้อความที่ตัดส่วนวันที่ออกแล้ว
+function parsePeriods(t){
+  const today = todayStr(), now = new Date(), cy = now.getFullYear(), cm = now.getMonth() + 1, cd = now.getDate();
+  const found = [];
+  const add = (re, fn) => { let m; const g = new RegExp(re, 'g'); while((m = g.exec(t))){ const p = fn(m); if(p) found.push({ i: m.index, len: m[0].length, p: Object.assign(p, { raw: m[0] }) }); if(!m[0].length) g.lastIndex++; } };
+  const monthAlt = MONTHS.map(x => x[1]).join('|'), monthShort = MONTHS.map(x => x[2]).join('|');
+  const YEAR = '(25\\d\\d|20[1-4]\\d|[6-9]\\d)(?!\\d)';
+  const monthNo = s => { for(const [n, full, short] of MONTHS){ if(new RegExp('^(?:' + full + '|' + short + ')$').test(s)) return n; } return 0; };
+  const guessYear = (m, d) => (m > cm || (m === cm && d && d > cd)) ? cy - 1 : cy;   // เดือน/วันที่ยังมาไม่ถึง = ของปีที่แล้ว
+  // วันที่ + เดือน (+ปี): "5 ต.ค." "วันที่ 5 ตุลา 69"
+  add('(?:วันที่\\s*)?(\\d{1,2})\\s*((?:' + monthAlt + ')|(?:' + monthShort + ')(?![ก-๙]))\\s*(?:(?:พ\\.ศ\\.|ปี)\\s*)?(?:' + YEAR + ')?', m => {
+    const mo = monthNo(m[2]), d = Number(m[1]); if(!mo || d < 1 || d > 31) return null;
+    const y = yearFrom(m[3]) || guessYear(mo, d);
+    const s = dateOf(y, mo, d); return dayPeriod(s);
+  });
+  // เดือน (+ปี): "ตุลา" "ต.ค. 69" "เดือนกันยา" "เดือน ตค"
+  add('(?:เดือน\\s*)?(' + monthAlt + ')\\s*(?:(?:พ\\.ศ\\.|ปี)\\s*)?(?:' + YEAR + ')?', m => {
+    const mo = monthNo(m[1]); if(!mo) return null;
+    const y = yearFrom(m[2]) || guessYear(mo); return monthPeriod(y, mo);
+  });
+  add('เดือน\\s*(' + monthShort + ')(?![ก-๙])', m => { const mo = monthNo(m[1]); return mo ? monthPeriod(guessYear(mo), mo) : null; });
+  add('(\\d{1,2})\\s*/\\s*(\\d{1,2})(?:\\s*/\\s*' + YEAR + ')?', m => {
+    const d = Number(m[1]), mo = Number(m[2]); if(d < 1 || d > 31 || mo < 1 || mo > 12) return null;
+    return dayPeriod(dateOf(yearFrom(m[3]) || guessYear(mo, d), mo, d));
+  });
+  add('(\\d{4})-(\\d{1,2})-(\\d{1,2})', m => dayPeriod(dateOf(Number(m[1]), Number(m[2]), Number(m[3]))));
+  add('วันที่\\s*(\\d{1,2})(?!\\s*[/\\d])', m => {
+    const d = Number(m[1]); if(d < 1 || d > 31) return null;
+    return d > cd ? dayPeriod(dateOf(cy, cm - 1, d)) : dayPeriod(dateOf(cy, cm, d));
+  });
+  add('เมื่อวานซืน', () => dayPeriod(daysAgoStr(2), 'เมื่อวานซืน (' + thaiDate(daysAgoStr(2)) + ')'));
+  add('เมื่อวาน(?!ซืน)', () => dayPeriod(daysAgoStr(1), 'เมื่อวาน (' + thaiDate(daysAgoStr(1)) + ')'));
+  add('วันนี้', () => dayPeriod(today, 'วันนี้ (' + thaiDate(today) + ')'));
+  add('(\\d{1,3})\\s*วัน\\s*(?:ก่อน|ที่แล้ว)', m => { const n = Number(m[1]); return dayPeriod(daysAgoStr(n), n + ' วันก่อน (' + thaiDate(daysAgoStr(n)) + ')'); });
+  add('(?:ย้อนหลัง\\s*)?(\\d{1,3})\\s*วัน(?:\\s*(?:ล่าสุด|หลังสุด|ย้อนหลัง|ที่ผ่านมา))?(?!\\s*(?:ก่อน|ที่แล้ว))', m => {
+    const n = Number(m[1]); if(n < 1) return null;
+    return { from: daysAgoStr(n - 1), to: today, label: n + ' วันล่าสุด', kind: 'days', n };
+  });
+  add('วัน\\s*(อาทิตย์|จันทร์|อังคาร|พุธ|พฤหัสบดี|พฤหัส|ศุกร์|เสาร์)(\\s*(?:ที่แล้ว|ก่อน))?', m => {
+    let back = (now.getDay() - WEEKDAYS[m[1]] + 7) % 7; if(m[2]) back += 7;
+    return dayPeriod(daysAgoStr(back), 'วัน' + m[1] + (m[2] ? 'ที่แล้ว' : '') + ' (' + thaiDate(daysAgoStr(back)) + ')');
+  });
+  add('(?:อาทิตย์|สัปดาห์|วีค)\\s*(?:ก่อน|ที่แล้ว)', () => ({ from: daysAgoStr(13), to: daysAgoStr(7), label: '7 วันก่อนหน้า', kind: 'days', n: 7 }));
+  add('(?:อาทิตย์|สัปดาห์|วีค)\\s*นี้|(?<!วัน)(?:อาทิตย์|สัปดาห์)(?!\\s*(?:ก่อน|ที่แล้ว))', () => ({ from: daysAgoStr(6), to: today, label: '7 วันล่าสุด', kind: 'days', n: 7 }));
+  add('(\\d{1,2})\\s*เดือน\\s*(?:ล่าสุด|ที่ผ่านมา|ย้อนหลัง)', m => { const n = Number(m[1]); return { from: dateOf(cy, cm - n + 1, 1), to: today, label: n + ' เดือนล่าสุด', kind: 'range' }; });
+  add('เดือน\\s*นี้', () => Object.assign(monthPeriod(cy, cm), { label: 'เดือนนี้ (' + MON_TH[cm-1] + ')' }));
+  add('เดือน\\s*(?:ก่อน|ที่แล้ว)', () => { const d = new Date(cy, cm - 2, 1); return monthPeriod(d.getFullYear(), d.getMonth() + 1); });
+  add('ปี\\s*นี้', () => ({ from: dateOf(cy, 1, 1), to: today, label: 'ปีนี้ (' + (cy + 543) + ')', kind: 'year' }));
+  add('ปี\\s*(?:ก่อน|ที่แล้ว)', () => ({ from: dateOf(cy - 1, 1, 1), to: dateOf(cy - 1, 12, 31), label: 'ปี ' + (cy + 542), kind: 'year' }));
+  add('ปี\\s*(?:พ\\.ศ\\.\\s*)?(\\d{2,4})', m => { const y = yearFrom(m[1]); return y ? { from: dateOf(y, 1, 1), to: dateOf(y, 12, 31), label: 'ปี ' + (y + 543), kind: 'year' } : null; });
+  add('ทั้งหมด|ตั้งแต่ต้น|ตั้งแต่เปิด|รวมทุก|ทุกวัน', () => ({ from: '0000-00-00', to: '9999-99-99', label: 'ทั้งหมด', kind: 'all' }));
+  // ตัดช่วงที่ซ้อนกัน (เก็บอันที่ยาวกว่า/มาก่อน)
+  found.sort((a, b) => a.i - b.i || b.len - a.len);
+  const keep = [];
+  for(const f of found){ const last = keep[keep.length - 1]; if(last && f.i < last.i + last.len){ if(f.len > last.len && f.i === last.i) keep[keep.length - 1] = f; continue; } keep.push(f); }
+  let rest = t;
+  for(const f of [...keep].sort((a, b) => b.i - a.i)) rest = rest.slice(0, f.i) + ' ' + rest.slice(f.i + f.len);
+  return { periods: keep.map(f => f.p), rest };
+}
+
+/* ── ธนาคาร / ยอดเงิน / ชื่อ ── */
+const BANKS = [
+  [/กสิกร|kbank|k\s?plus|k\+|เคแบง/, 'กสิกรไทย'], [/ไทยพาณิชย์|scb/, 'ไทยพาณิชย์'], [/กรุงเทพ|bbl|บัวหลวง/, 'กรุงเทพ'],
+  [/กรุงไทย|ktb|เป๋าตัง/, 'กรุงไทย'], [/กรุงศรี|krungsri|\bbay\b/, 'กรุงศรีอยุธยา'], [/ทหารไทย|ธนชาต|ttb|tmb/, 'ทหารไทยธนชาต'],
+  [/ออมสิน|gsb|mymo/, 'ออมสิน'], [/พร้อมเพย์|promptpay/, 'พร้อมเพย์'], [/true\s?money|ทรูมันนี่|ทรูวอลเล็ท|วอลเล็ท/, 'TrueMoney'],
+];
+const NUM = '(\\d+(?:\\.\\d+)?)';
+function parseAmount(rest){
+  let m;
+  if((m = rest.match(new RegExp('(?:ระหว่าง\\s*)?' + NUM + '\\s*(?:-|–|ถึง)\\s*' + NUM)))) { const a = Number(m[1]), b = Number(m[2]); return { min: Math.min(a, b), max: Math.max(a, b), raw: m[0] }; }
+  if((m = rest.match(new RegExp('(?:ไม่เกิน|น้อยกว่า|ต่ำกว่า|ไม่ถึง|<=?|≤)\\s*' + NUM))) || (m = rest.match(new RegExp(NUM + '\\s*(?:บาท\\s*)?ลงมา')))) return { max: Number(m[1]), strictMax: !/ไม่เกิน|<=|≤|ลงมา/.test(m[0]), raw: m[0] };
+  if((m = rest.match(new RegExp('(?:เกิน|มากกว่า|สูงกว่า|ตั้งแต่|อย่างน้อย|>=?|≥)\\s*' + NUM))) || (m = rest.match(new RegExp(NUM + '\\s*(?:บาท\\s*)?(?:ขึ้นไป|up)')))) return { min: Number(m[1]), strictMin: /เกิน|มากกว่า|สูงกว่า|>(?!=)/.test(m[0]), raw: m[0] };
+  if((m = rest.match(new RegExp(NUM)))) { const v = Number(m[1]); if(v > 0) return { eq: v, raw: m[0] }; }
+  return null;
+}
+function amtOk(r, a){
+  const v = Number(r.amount) || 0;
+  if(a.eq != null) return Math.abs(v - a.eq) < 0.005;
+  if(a.min != null && (a.strictMin ? v <= a.min : v < a.min)) return false;
+  if(a.max != null && (a.strictMax ? v >= a.max : v > a.max)) return false;
+  return true;
+}
+function amtLabel(a){
+  if(a.eq != null) return 'ยอด ' + fmt(a.eq) + ' ฿';
+  if(a.min != null && a.max != null) return 'ยอด ' + fmt(a.min) + '–' + fmt(a.max) + ' ฿';
+  if(a.min != null) return 'ยอด' + (a.strictMin ? 'เกิน ' : ' ' ) + fmt(a.min) + ' ฿' + (a.strictMin ? '' : ' ขึ้นไป');
+  return 'ยอด' + (a.strictMax ? 'ต่ำกว่า ' : 'ไม่เกิน ') + fmt(a.max) + ' ฿';
+}
+// คำทั่วไปในคำถาม — ไม่ใช่ชื่อลูกค้า (ใช้ตัดทิ้งตอนหาชื่อที่พิมพ์ผิด และกันคำในชื่อชนคำถาม)
+const VOCAB = ('ยอดเงิน ยอด โอนเข้า โอนออก โอน เงินเข้า เข้า ออก มาแล้ว มา กี่ครั้ง กี่รายการ กี่รอบ กี่คน กี่ ครั้ง รายการ เท่าไหร่ เท่าไร เท่าไห ได้ ไหม มั้ย ไม๊ ยัง บ้าง ของ คน ใคร วัน เดือน ปี นี้ ก่อน ที่แล้ว แล้ว ล่ะ ละ หน่อย ครับ ค่ะ คะ นะ จ้า จ้ะ ขอ ดู เช็ค เช็ก หา ค้นหา ลูกค้า รวม ทั้งหมด สรุป บาท เงิน ธนาคาร แบงก์ แบงค์ สลิป ช่วย ด้วย มี เป็น อะไร ยังไง ไหน สูงสุด ต่ำสุด มากสุด เยอะสุด น้อยสุด สุด เฉลี่ย เกิน กว่า ขาย ขายดี ดี ร้าน ทำ ให้ ที่ และ กับ หรือ บันทึก พนักงาน เจ้าของ ล่าสุด เทียบ ยืนยัน ตรวจ ซ้ำ รอบ อนุมัติ รอ เป้า กำไร จ่าย ค่า ใช้ ตอนนี้ วันนี้ เมื่อวาน นาย นาง นางสาว คุณ บจก หจก บริษัท จำกัด ไม่ระบุชื่อ ไม่ระบุ อ่ะ อะ เลย จริง').split(' ');
+const VOCAB_SET = new Set(VOCAB);
+const VOCAB_RE = new RegExp(VOCAB.slice().sort((a, b) => b.length - a.length).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g');
+function nameTokens(n){ return String(n || '').toLowerCase().split(/[\s()\-.,/]+/).filter(tk => tk.length >= 3 && !/^\d+$/.test(tk) && !VOCAB_SET.has(tk)); }
+function osa(a, b){   // ระยะแก้คำ (นับสลับตัวอักษรติดกันเป็น 1) — จับชื่อพิมพ์ผิด เช่น สมชยา → สมชาย
+  const d = []; for(let i = 0; i <= a.length; i++){ d[i] = [i]; } for(let j = 0; j <= b.length; j++) d[0][j] = j;
+  for(let i = 1; i <= a.length; i++) for(let j = 1; j <= b.length; j++){
+    const c = a[i-1] === b[j-1] ? 0 : 1;
+    d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + c);
+    if(i > 1 && j > 1 && a[i-1] === b[j-2] && a[i-2] === b[j-1]) d[i][j] = Math.min(d[i][j], d[i-2][j-2] + 1);
+  }
+  return d[a.length][b.length];
+}
+function findCustomers(t, rest){
+  const names = [...new Set(data.map(r => (r.name || '').trim()).filter(n => n && n !== 'ไม่ระบุชื่อ'))];
+  const lower = n => n.toLowerCase();
+  // 1) ชื่อเต็มอยู่ในประโยค
+  let hits = names.filter(n => n.length >= 3 && t.includes(lower(n)));
+  if(hits.length) return { names: hits };
+  // 2) คำใดคำหนึ่งของชื่ออยู่ในประโยค เช่น "สมชาย" → "สมชาย ใจดี"
+  hits = names.filter(n => nameTokens(n).some(tk => t.includes(tk)));
+  if(hits.length) return { names: hits };
+  // 3) พิมพ์ผิดเล็กน้อย — เทียบกับคำที่เหลือหลังตัดคำทั่วไป/ตัวเลข/วันที่ออก
+  const chunks = rest.replace(VOCAB_RE, ' ').replace(/[\d.,:;!?()"'\-–/]+/g, ' ').split(/\s+/).filter(c => (c.match(/[ก-๙a-z]/g) || []).length >= 3);
+  let best = null;
+  for(const n of names) for(const tk of nameTokens(n)){
+    const thr = tk.length >= 6 ? 2 : 1;
+    for(const c of chunks) for(let L = Math.max(3, tk.length - 1); L <= tk.length + 1; L++) for(let s = 0; s + L <= c.length; s++){
+      const dist = osa(c.slice(s, s + L), tk);
+      if(dist <= thr && (!best || dist < best.dist)) best = { dist, tk };
+    }
+  }
+  if(best){ const ns = names.filter(n => nameTokens(n).includes(best.tk)); return { names: ns, guessed: true }; }
+  return null;
+}
+function recorderOf(r){ return r.approvedBy ? (r.submittedBy || r.createdBy || '') : (r.createdBy || ''); }
+function whoLabel(email){ email = (email || '').trim(); if(!email) return ''; return OWNER_EMAILS.map(e => e.toLowerCase()).includes(email.toLowerCase()) ? 'เจ้าของ' : email.split('@')[0]; }
+
+/* ── แยกคำถาม ── */
+function parseQuery(text){
+  let t = String(text || '').toLowerCase()
+    .replace(/[๐-๙]/g, c => String(c.charCodeAt(0) - 0x0E50))
+    .replace(/(\d),(?=\d{3}(?!\d))/g, '$1')
+    .replace(/(\d+(?:\.\d+)?)\s*(?:k|พัน)(?![ก-๙])/g, (m, n) => String(Number(n) * 1000))
+    .replace(/(\d+(?:\.\d+)?)\s*หมื่น/g, (m, n) => String(Number(n) * 10000))
+    .replace(/\s+/g, ' ').trim();
+  const q = { text: t, f: {} };
+  const P = parsePeriods(t);
+  q.periods = P.periods;
+  let rest = P.rest;
+  // จำนวนอันดับ/รายการที่ขอ (ไม่ใช่ยอดเงิน): "top 5" "5 อันดับ" "ล่าสุด 10 รายการ" ; "2 รอบ" "3 ครั้ง"
+  let m;
+  if((m = rest.match(/top\s*(\d{1,2})|(\d{1,2})\s*(?:อันดับ|คนแรก)|(?:ล่าสุด|แรก)\s*(\d{1,2})|(\d{1,2})\s*รายการ\s*(?:ล่าสุด|แรก)/))){ q.topN = Number(m[1] || m[2] || m[3] || m[4]); rest = rest.replace(m[0], ' '); }
+  if((m = rest.match(/(\d)\s*(?:รอบ|ครั้ง|ที)(?![ก-๙])/))){ q.times = Number(m[1]); rest = rest.replace(m[0], ' '); }
+  if(q.periods.length) q.f.period = q.periods[0];
+  // ธนาคาร
+  for(const [re, name] of BANKS) if(re.test(t)){ q.f.bank = name; rest = rest.replace(re, ' '); break; }
+  // ประเภท
+  if(/จ่ายออก|ค่าใช้จ่าย|รายจ่าย|โอนออก|จ่ายไป|ใช้จ่าย|ใช้ไป/.test(t)) q.f.type = 'out';
+  else if(/เงินเข้า|รับเข้า|รายรับ|โอนเข้า|รายได้|ขายได้|ยอดขาย/.test(t)) q.f.type = 'in';
+  // สถานะสลิป
+  if(/ยังไม่ตรวจ|ไม่ได้ตรวจ|ไม่ผ่าน|ไม่มีสลิป|กรอกเอง|ยังไม่ยืนยัน|ค้างตรวจ/.test(t)) q.f.verified = false;
+  else if(/ยืนยันแล้ว|ตรวจแล้ว|ผ่านแล้ว|ยืนยันธนาคาร|verified/.test(t)) q.f.verified = true;
+  // คนบันทึก
+  if(/บันทึก|พนักงาน|คีย์|ลงยอด/.test(t)){
+    const emails = [...new Set(data.map(recorderOf).filter(Boolean))];
+    const hit = emails.find(e => { const l = whoLabel(e).toLowerCase(); return l && t.includes(l); });
+    if(hit) { q.f.recorder = hit; rest = rest.replace(whoLabel(hit).toLowerCase(), ' '); }
+  }
+  // ยอดเงิน (หลังตัดวันที่/อันดับออกแล้ว ตัวเลขที่เหลือคือยอด)
+  const a = parseAmount(rest);
+  if(a){ q.f.amount = a; rest = rest.replace(a.raw, ' '); }
+  // ลูกค้า
+  const explicit = t.match(/(?:ค้นหา|หาชื่อ|ชื่อ|ลูกค้าชื่อ)\s*[:：]?\s*(\S.*)$/);
+  const c = findCustomers(t, rest);
+  if(c) q.f.cust = c;
+  if(c && c.names.length && q.periods.length){   // ชื่อลูกค้าชนชื่อเดือน เช่น "มีนา" → ถือเป็นชื่อ (พิมพ์ "เดือนมีนา" ถ้าหมายถึงเดือน)
+    const nm = c.names.map(n => n.toLowerCase());
+    q.periods = q.periods.filter(p => !(p.raw && !/เดือน|\d/.test(p.raw) && nm.some(n => n.includes(p.raw.trim()))));
+    if(q.periods.length) q.f.period = q.periods[0]; else delete q.f.period;
+  }
+  if(!c && explicit && explicit[1].trim().length >= 2) q.f.cust = { names: [], text: explicit[1].trim() };
+  q.intent = detectIntent(t, P.rest);
+  q.follow = /^(?:แล้ว|ส่วน|งั้น|และ)/.test(t) || /(?:ล่ะ|ละ|หล่ะ|หละ)\s*[?]?$/.test(t);
+  return q;
+}
+function detectIntent(t, rest){
+  if(/ช่วยเหลือ|ทำอะไรได้|help|วิธีใช้|ใช้ยังไง|ถามอะไรได้/.test(t)) return 'help';
+  if(/^(?:สวัสดี|หวัดดี|ดีครับ|ดีค่ะ|hello|hi)/.test(t)) return 'greet';
+  if(/^(?:ขอบคุณ|ขอบใจ|thank|โอเค|ok)/.test(t)) return 'thanks';
+  if(/รออนุมัติ|คิวอนุมัติ|คิวรอ|รอตรวจ|ค้างอนุมัติ/.test(t)) return 'pending';
+  if(/เป้า/.test(t)) return 'goal';
+  if(/ดูสลิป|ขอสลิป|เปิดสลิป|รูปสลิป|ขอดูรูป/.test(t)) return 'slips';
+  if(/ซ้ำ|สองรอบ|สองครั้ง|\d\s*รอบ|\d\s*ครั้งในวัน/.test(t)) return 'dup';
+  if(/เทียบ|เปรียบเทียบ|เยอะกว่า|มากกว่า(?!\s*\d)|น้อยกว่า(?!\s*\d)|ดีกว่า|แย่กว่า|โตขึ้น|ตกลง|ลดลง|เพิ่มขึ้น/.test(t)) return 'compare';
+  if(/วันไหน|วันที่ขาย|ขายดีสุด|ขายดีที่สุด|ขายน้อยสุด|ขายไม่ดี/.test(t)) return /น้อย|ต่ำ|แย่|เงียบ|ไม่ดี/.test(t) ? 'worstDay' : 'bestDay';
+  if(/เฉลี่ย/.test(t)) return 'avg';
+  if(/กำไร|ขาดทุน/.test(t)) return 'profit';
+  if(/ใคร(?:เป็นคน)?(?:บันทึก|คีย์)|แยก(?:ตาม)?พนักงาน|พนักงาน(?:คนไหน|ใคร)|บันทึก.*(?:เยอะ|มาก|บ่อย)สุด/.test(t)) return 'byRecorder';
+  if(/ลูกค้าประจำ|ขาประจำ|โอนบ่อย|บ่อยสุด|ใคร.*(?:เยอะ|มาก|สูง)สุด|ลูกค้า.*(?:เยอะ|มาก|ใหญ่)สุด|top.*ลูกค้า|ลูกค้า.*top/.test(t)) return /บ่อย|ประจำ|ครั้ง/.test(t) ? 'topCustCount' : 'topCustSum';
+  if(/แยก(?:ตาม)?(?:ธนาคาร|แบงก์|แบงค์)|ธนาคารไหน|แต่ละธนาคาร|แยกแบงก์/.test(t)) return 'byBank';
+  if(/ยอดสูงสุด|รายการ(?:ใหญ่|สูง)สุด|มากสุด|สูงสุด|ใหญ่สุด|\btop\b/.test(t)) return 'topTx';
+  if(/ยังไม่ตรวจ|ไม่ได้ตรวจ|ไม่ผ่าน|ไม่มีสลิป|ค้างตรวจ/.test(t)) return 'list';
+  if(/ล่าสุด|เพิ่งเข้า|เมื่อกี้|รายการใหม่/.test(rest)) return 'latest';
+  if(/กี่คน/.test(t)) return 'countPeople';
+  if(/กี่ครั้ง|กี่รายการ|กี่รอบ|กี่ที|จำนวนรายการ/.test(t)) return 'count';
+  if(/สรุป|ภาพรวม|overview|เป็นไงบ้าง|โดยรวม|dashboard/.test(t)) return 'overview';
+  if(/ขอดู|มีใครบ้าง|ใครบ้าง|ใคร(?:โอน|จ่าย)|ลิสต์|list|แสดง|รายการ/.test(t)) return 'list';
+  if(/ยอด|เท่าไหร่|เท่าไร|ได้กี่|รวม|เข้ายัง|เข้าไหม|มีไหม|มีมั้ย|เช็ค|เช็ก|หา/.test(t)) return 'sum';
+  return null;
+}
+
+/* ── คำนวณ ── */
+function applyFilters(f, opt){
+  opt = opt || {};
+  return data.filter(r => {
+    const p = opt.period || f.period;
+    if(p && !(r.date >= p.from && r.date <= p.to)) return false;
+    if(f.type === 'out' && !isOut(r)) return false;
+    if(f.type === 'in' && isOut(r)) return false;
+    if(f.bank && r.bank !== f.bank) return false;
+    if(f.amount && !amtOk(r, f.amount)) return false;
+    if(f.verified === true && !r.slipVerified) return false;
+    if(f.verified === false && (r.slipVerified || isOut(r))) return false;
+    if(f.recorder && recorderOf(r).toLowerCase() !== f.recorder.toLowerCase()) return false;
+    if(f.cust){
+      if(f.cust.names.length){ if(!f.cust.names.includes((r.name || '').trim())) return false; }
+      else { const q = f.cust.text.toLowerCase(); if(!((r.name || '').toLowerCase().includes(q) || (r.note || '').toLowerCase().includes(q))) return false; }
+    }
+    return true;
+  });
+}
+function filterLabel(f, noPeriod){
+  const parts = [];
+  if(f.cust) parts.push(f.cust.names.length ? (f.cust.names.length <= 2 ? f.cust.names.join(', ') : f.cust.names.length + ' ชื่อที่ตรง') : '"' + f.cust.text + '"');
+  if(f.type === 'out') parts.push('จ่ายออก'); else if(f.type === 'in') parts.push('รับเข้า');
+  if(f.bank) parts.push(f.bank);
+  if(f.amount) parts.push(amtLabel(f.amount));
+  if(f.verified === true) parts.push('ยืนยันธนาคารแล้ว'); else if(f.verified === false) parts.push('ยังไม่ตรวจสลิป');
+  if(f.recorder) parts.push('บันทึกโดย ' + whoLabel(f.recorder));
+  if(!noPeriod) parts.push(f.period ? f.period.label : 'ทุกช่วงเวลา');
+  return parts.join(' · ');
+}
+const specific = f => !!(f.cust || f.bank || f.amount || f.verified != null || f.recorder);
+const LEGEND = '\n\n✅ = ยืนยันกับธนาคารแล้ว · 📎 = มีสลิป · 📝 = กรอกเอง';
+function listLines(list, n){ const s = sortRecent(list); return s.slice(0, n).map(recLine).join('\n') + (s.length > n ? '\n...และอีก ' + (s.length - n) + ' รายการ' : ''); }
+function guessNote(f){ return f.cust && f.cust.guessed ? '🔎 น่าจะหมายถึง "' + f.cust.names.slice(0, 3).join('", "') + '" นะคะ\n\n' : ''; }
+function defaultPeriod(f, label){ return f.period || Object.assign(monthPeriod(new Date().getFullYear(), new Date().getMonth() + 1), { label: label || ('เดือนนี้ (' + MON_TH[new Date().getMonth()] + ')') }); }
+function prevPeriod(p){
+  const span = daysBetween(p.from, p.to) + 1;
+  if(p.kind === 'month'){ const [y, m] = p.from.split('-').map(Number); const d = new Date(y, m - 2, 1); return monthPeriod(d.getFullYear(), d.getMonth() + 1); }
+  if(p.kind === 'year'){ const y = Number(p.from.slice(0, 4)) - 1; return { from: dateOf(y, 1, 1), to: dateOf(y, 12, 31), label: 'ปี ' + (y + 543), kind: 'year' }; }
+  if(p.kind === 'day') return dayPeriod(addDays(p.from, -1));
+  return { from: addDays(p.from, -span), to: addDays(p.from, -1), label: span + ' วันก่อนหน้า', kind: 'days', n: span };
+}
+
+function answer(q){
+  const f = q.f, today = todayStr();
+  const empty = label => '📭 ไม่พบรายการ' + (label ? ' (' + label + ')' : '') + ' ค่ะ';
+  switch(q.intent){
+    case 'help':
+      return '🤖 น้องเฮิร์ตเข้าใจคำถามแบบผสมเงื่อนไขได้แล้วค่ะ ลองถามแบบนี้:\n\n' +
+        '• ยอด: "ยอดวันนี้" "เมื่อวานซืนได้เท่าไหร่" "ยอดสิงหาคม" "วันที่ 5 ได้เท่าไหร่"\n' +
+        '• ลูกค้า: "สมชายเดือนนี้โอนกี่ครั้ง" "ใครโอนเกิน 1000" "ลูกค้าประจำ"\n' +
+        '• เช็คยอด: "590 เข้ายัง" "มีใครโอน 590 สองรอบไหม"\n' +
+        '• ธนาคาร: "กสิกรเดือนนี้เท่าไหร่" "แยกตามธนาคาร"\n' +
+        '• วิเคราะห์: "วันไหนขายดีสุด" "เฉลี่ยวันละเท่าไหร่" "กำไรเดือนนี้" "อาทิตย์นี้เทียบอาทิตย์ก่อน"\n' +
+        '• งานร้าน: "รออนุมัติ" "ถึงเป้ายัง" "ใครบันทึกเยอะสุด" "ยังไม่ตรวจสลิป" "ดูสลิป สมชาย"\n\n' +
+        'ถามต่อได้ด้วยนะคะ เช่น "แล้วเดือนก่อนล่ะ"';
+    case 'greet':
+      return 'สวัสดีค่ะ 🙏 น้องเฮิร์ตพร้อมช่วยเช็คยอดแล้วค่ะ\nตอนนี้มี ' + data.length + ' รายการในระบบ ยอดคงเหลือสุทธิ ' + fmt(sum(data)) + ' ฿\nพิมพ์ "ช่วยเหลือ" เพื่อดูตัวอย่างคำถามนะคะ';
+    case 'thanks': return 'ยินดีค่ะ 💙';
+    case 'pending': {
+      const list = [...pendingData].sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
+      if(!list.length) return '✅ ไม่มีรายการรออนุมัติค่ะ';
+      const tot = list.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+      return '🕒 รออนุมัติ ' + list.length + ' รายการ (รวม ' + fmt(tot) + ' ฿):\n\n' +
+        list.slice(0, 8).map(x => '• ' + fmt(x.amount) + ' ฿ — ' + _noSent(x.name || 'ไม่ระบุชื่อ') + ' · ' + thaiDate(x.date) + ' · ส่งโดย ' + (whoLabel(x.submittedBy) || '-')).join('\n') +
+        (list.length > 8 ? '\n...และอีก ' + (list.length - 8) + ' รายการ' : '') + '\n\nอนุมัติได้ที่หน้าแรกค่ะ';
+    }
+    case 'goal': {
+      if(!goalAmt) return '🎯 ยังไม่ได้ตั้งเป้ายอดเดือนนี้ค่ะ\nเจ้าของตั้งได้ที่การ์ด "เป้ายอดเดือนนี้" ในหน้าแรกนะคะ';
+      const now = new Date(), ym = today.slice(0, 7);
+      const got = sumIn(data.filter(r => (r.date || '').slice(0, 7) === ym));
+      const pct = Math.round(got / goalAmt * 100);
+      const daysLeft = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate() + 1;
+      if(got >= goalAmt) return '🎉 ทะลุเป้าแล้วค่ะ! เดือนนี้รับเข้า ' + fmt(got) + ' ฿ จากเป้า ' + fmt(goalAmt) + ' ฿ (' + pct + '%)';
+      const need = goalAmt - got;
+      return '🎯 เป้าเดือนนี้ ' + fmt(goalAmt) + ' ฿\n• ทำได้แล้ว ' + fmt(got) + ' ฿ (' + pct + '%)\n• ขาดอีก ' + fmt(need) + ' ฿\n• เหลือ ' + daysLeft + ' วัน (รวมวันนี้) → ต้องได้เฉลี่ยวันละ ' + fmt(Math.ceil(need / daysLeft)) + ' ฿';
+    }
+    case 'slips': {
+      let list = applyFilters(f).filter(r => r.slipVerified || r.hasImg);
+      if(!list.length) return guessNote(f) + (specific(f) || f.period ? '🔍 ไม่พบสลิป (' + filterLabel(f) + ') ค่ะ' : '📭 ยังไม่มีรายการที่มีสลิปเก็บไว้ค่ะ');
+      return guessNote(f) + '📎 รายการที่มีสลิป (' + filterLabel(f) + ') ' + list.length + ' รายการ — กดปุ่มดูสลิปได้เลยค่ะ:\n\n' + listLines(list, 8);
+    }
+    case 'dup': {
+      const need = q.times && q.times >= 2 ? q.times : 2;
+      const list = applyFilters(Object.assign({}, f, { type: f.type || 'in' }));
+      const g = {};
+      list.forEach(r => { const k = r.date + '|' + Number(r.amount) + '|' + (r.name || ''); (g[k] = g[k] || []).push(r); });
+      const groups = Object.values(g).filter(x => x.length >= need).sort((a, b) => b[0].date.localeCompare(a[0].date));
+      if(!groups.length) return guessNote(f) + '✅ ไม่พบคนที่โอนยอดเดียวกันซ้ำ ' + need + ' รอบขึ้นไปในวันเดียวกันค่ะ (' + filterLabel(f) + ')';
+      return guessNote(f) + '⚠️ พบยอดซ้ำในวันเดียวกัน ' + groups.length + ' กรณี (' + filterLabel(f) + ') — ลองเช็คว่าเป็นสลิปซ้ำหรือโอนจริงสองรอบนะคะ:\n\n' +
+        groups.slice(0, 6).map(x => '• ' + thaiDate(x[0].date) + ' · ' + _noSent(x[0].name || 'ไม่ระบุชื่อ') + ' · ' + fmt(x[0].amount) + ' ฿ × ' + x.length + ' รอบ\n' + x.map(r => '    ' + recLine(r)).join('\n')).join('\n');
+    }
+    case 'compare': {
+      const p1 = q.periods[0] || (/สัปดาห์|อาทิตย์/.test(q.text) ? { from: daysAgoStr(6), to: today, label: '7 วันล่าสุด', kind: 'days', n: 7 } : defaultPeriod({}));
+      const p2 = q.periods[1] || prevPeriod(p1);
+      const base = Object.assign({}, f, { type: f.type || 'in' });
+      const a = applyFilters(base, { period: p1 }), b = applyFilters(base, { period: p2 });
+      const va = base.type === 'out' ? sumOut(a) : sumIn(a), vb = base.type === 'out' ? sumOut(b) : sumIn(b);
+      const diff = va - vb, pct = vb > 0 ? Math.round(Math.abs(diff) / vb * 100) : null;
+      const arrow = diff > 0 ? '📈 เพิ่มขึ้น' : (diff < 0 ? '📉 ลดลง' : '➡️ เท่าเดิม');
+      const what = (base.type === 'out' ? 'จ่ายออก' : 'รับเข้า') + (specific(f) ? ' · ' + filterLabel(f, true) : '');
+      let s = guessNote(f) + '⚖️ เทียบ' + what + '\n\n• ' + p1.label + ': ' + fmt(va) + ' ฿ (' + a.length + ' รายการ)\n• ' + p2.label + ': ' + fmt(vb) + ' ฿ (' + b.length + ' รายการ)\n\n' + arrow + ' ' + fmt(Math.abs(diff)) + ' ฿' + (pct != null ? ' (' + pct + '%)' : '');
+      if(p1.to >= today && p1.kind === 'month' && p2.kind === 'month') s += '\n(เดือนนี้ยังไม่จบ — เทียบกับทั้งเดือนก่อน)';
+      return s;
+    }
+    case 'bestDay': case 'worstDay': {
+      const p = defaultPeriod(f);
+      const list = applyFilters(Object.assign({}, f, { type: 'in' }), { period: p });
+      const byDay = {}; list.forEach(r => { byDay[r.date] = (byDay[r.date] || 0) + Number(r.amount || 0); });
+      let rows;
+      if(q.intent === 'worstDay'){
+        const days = []; const first = p.kind === 'all' ? (sortRecent(data).pop() || {}).date || today : p.from;
+        for(let d = first; d <= (p.to < today ? p.to : today); d = addDays(d, 1)) days.push(d);
+        if(!days.length) return empty(p.label);
+        rows = days.map(d => [d, byDay[d] || 0]).sort((x, y) => x[1] - y[1] || y[0].localeCompare(x[0])).slice(0, q.topN || 3);
+      } else {
+        rows = Object.entries(byDay).sort((x, y) => y[1] - x[1]).slice(0, q.topN || 3);
+        if(!rows.length) return guessNote(f) + empty(filterLabel(f, true) ? filterLabel(f, true) + ' · ' + p.label : p.label);
+      }
+      const title = (q.intent === 'worstDay' ? '🐢 วันที่ขายน้อยสุด' : '🏆 วันที่ขายดีสุด') + ' (' + (specific(f) ? filterLabel(f, true) + ' · ' : '') + p.label + ')';
+      return guessNote(f) + title + ':\n\n' + rows.map(([d, v], i) => (i + 1) + '. ' + thaiDate(d) + ' — ' + fmt(v) + ' ฿ (' + list.filter(r => r.date === d).length + ' รายการ)').join('\n') +
+        (f.period ? '' : '\n\nถามช่วงอื่นได้ เช่น "วันไหนขายดีสุดเดือนก่อน"');
+    }
+    case 'avg': {
+      const p = defaultPeriod(f);
+      const list = applyFilters(Object.assign({}, f, { type: f.type || 'in' }), { period: p });
+      if(!list.length) return guessNote(f) + empty(p.label);
+      const first = p.kind === 'all' ? sortRecent(data).pop().date : p.from;
+      const nDays = Math.max(1, daysBetween(first, p.to < today ? p.to : today) + 1);
+      const tot = f.type === 'out' ? sumOut(list) : sumIn(list);
+      return guessNote(f) + '📐 ค่าเฉลี่ย' + (f.type === 'out' ? 'จ่ายออก' : 'รับเข้า') + ' (' + (specific(f) ? filterLabel(f, true) + ' · ' : '') + p.label + ')\n\n• ต่อวัน: ' + fmt(Math.round(tot / nDays)) + ' ฿ (' + nDays + ' วัน)\n• ต่อรายการ: ' + fmt(Math.round(tot / list.length)) + ' ฿ (' + list.length + ' รายการ)\n• รวม: ' + fmt(tot) + ' ฿';
+    }
+    case 'profit': {
+      const p = defaultPeriod(f);
+      const base = Object.assign({}, f); delete base.type;
+      const list = applyFilters(base, { period: p });
+      const i = sumIn(list), o = sumOut(list), net = i - o;
+      return '💹 กำไรคร่าว ๆ (' + p.label + ')\n\n• รับเข้า: ' + fmt(i) + ' ฿\n• จ่ายออก: −' + fmt(o) + ' ฿\n• ' + (net >= 0 ? 'กำไร' : 'ขาดทุน') + ': ' + fmt(Math.abs(net)) + ' ฿' + (i > 0 ? ' (' + Math.round(net / i * 100) + '% ของรายรับ)' : '') +
+        '\n\n(คิดจากเงินเข้า−ออกที่บันทึกในระบบเท่านั้น ไม่รวมต้นทุนที่ไม่ได้บันทึกนะคะ)';
+    }
+    case 'byRecorder': {
+      const list = applyFilters(f);
+      if(!list.length) return empty(filterLabel(f));
+      const g = {};
+      list.forEach(r => { const k = whoLabel(recorderOf(r)) || '(ไม่ทราบ — รายการเก่า)'; g[k] = g[k] || { n: 0, s: 0 }; g[k].n++; g[k].s += Number(r.amount || 0); });
+      return '👥 แยกตามคนบันทึก (' + filterLabel(f) + '):\n\n' + Object.entries(g).sort((a, b) => b[1].n - a[1].n).map(([k, v], i) => (i + 1) + '. ' + k + ' — ' + v.n + ' รายการ (' + fmt(v.s) + ' ฿)').join('\n');
+    }
+    case 'topCustCount': case 'topCustSum': {
+      const list = applyFilters(Object.assign({}, f, { type: 'in' }));
+      if(!list.length) return empty(filterLabel(f));
+      const g = {};
+      list.forEach(r => { const n = r.name || 'ไม่ระบุ'; g[n] = g[n] || { n: 0, s: 0 }; g[n].n++; g[n].s += Number(r.amount || 0); });
+      const bySum = q.intent === 'topCustSum';
+      const rows = Object.entries(g).sort((a, b) => bySum ? (b[1].s - a[1].s || b[1].n - a[1].n) : (b[1].n - a[1].n || b[1].s - a[1].s)).slice(0, q.topN || 5);
+      return (bySum ? '💰 ลูกค้าที่โอนยอดรวมสูงสุด' : '⭐ ลูกค้าที่โอนบ่อยสุด') + ' (' + filterLabel(f) + '):\n\n' + rows.map(([n, v], i) => (i + 1) + '. ' + _noSent(n) + ' — ' + v.n + ' ครั้ง (รวม ' + fmt(v.s) + ' ฿)').join('\n');
+    }
+    case 'byBank': {
+      const list = applyFilters(Object.assign({}, f, { type: f.type || 'in' }));
+      if(!list.length) return empty(filterLabel(f));
+      const g = {}; list.forEach(r => { const b = r.bank || 'ไม่ระบุ'; g[b] = g[b] || { n: 0, s: 0 }; g[b].n++; g[b].s += Number(r.amount || 0); });
+      const tot = list.reduce((s, r) => s + Number(r.amount || 0), 0) || 1;
+      return '🏦 ' + (f.type === 'out' ? 'จ่ายออก' : 'รับเข้า') + 'แยกตามธนาคาร (' + filterLabel(f) + '):\n\n' + Object.entries(g).sort((a, b) => b[1].s - a[1].s).map(([b, v]) => '• ' + b + ': ' + fmt(v.s) + ' ฿ · ' + v.n + ' รายการ (' + Math.round(v.s / tot * 100) + '%)').join('\n');
+    }
+    case 'topTx': {
+      const list = applyFilters(Object.assign({}, f, { type: f.type || 'in' })).sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
+      if(!list.length) return guessNote(f) + empty(filterLabel(f));
+      const n = q.topN || 3;
+      return guessNote(f) + '🏆 ' + (f.type === 'out' ? 'จ่ายออก' : 'ยอดโอนเข้า') + 'สูงสุด ' + Math.min(n, list.length) + ' อันดับ (' + filterLabel(f) + '):\n\n' + list.slice(0, n).map((r, i) => (i + 1) + '. ' + recLine(r)).join('\n');
+    }
+    case 'latest': {
+      const list = applyFilters(f);
+      if(!list.length) return guessNote(f) + empty(filterLabel(f));
+      return guessNote(f) + '🕐 ' + Math.min(q.topN || 5, list.length) + ' รายการล่าสุด' + (specific(f) || f.period ? ' (' + filterLabel(f) + ')' : '') + ':\n\n' + listLines(list, q.topN || 5);
+    }
+    case 'countPeople': {
+      const list = applyFilters(Object.assign({}, f, { type: f.type || 'in' }));
+      const n = new Set(list.map(r => r.name || 'ไม่ระบุ')).size;
+      return '👥 ' + filterLabel(f) + ': ลูกค้า ' + n + ' คน · ' + list.length + ' รายการ · รวม ' + fmt(sumIn(list) || sumOut(list)) + ' ฿';
+    }
+    case 'count': {
+      const list = applyFilters(f);
+      if(!list.length) return guessNote(f) + empty(filterLabel(f));
+      const nIn = list.filter(r => !isOut(r)).length, nOut = list.length - nIn;
+      const lastR = sortRecent(list)[0];
+      return guessNote(f) + '🔢 ' + filterLabel(f) + '\n\n• ' + list.length + ' รายการ' + (nOut ? ' (รับเข้า ' + nIn + ' · จ่ายออก ' + nOut + ')' : '') +
+        '\n• รวม ' + fmt(nOut && !nIn ? sumOut(list) : sumIn(list)) + ' ฿' + (f.cust ? '\n• ล่าสุด: ' + thaiDate(lastR.date) + ' (' + fmt(lastR.amount) + ' ฿)' : '') +
+        (list.length <= 6 ? '\n\n' + listLines(list, 6) : '');
+    }
+    case 'overview':
+      if(!specific(f) && !f.period){
+        if(!data.length) return 'ยังไม่มีรายการในระบบเลยค่ะ';
+        const tD = sum(filterRange(today, today)), t7 = sum(filterRange(daysAgoStr(6), today));
+        const tM = sum(data.filter(r => (r.date || '').slice(0, 7) === monthStr(0)));
+        const tAll = sum(data), oAll = sumOut(data);
+        const custs = new Set(data.filter(r => !isOut(r)).map(r => r.name || 'ไม่ระบุ')).size;
+        const inCount = data.filter(r => !isOut(r)).length, verified = data.filter(r => r.slipVerified).length;
+        return '📋 สรุปภาพรวม HURT SHOP (ยอดสุทธิ = รับเข้า − จ่ายออก)\n\n' +
+          '• วันนี้: ' + fmt(tD) + ' ฿\n• 7 วันล่าสุด: ' + fmt(t7) + ' ฿\n• เดือนนี้: ' + fmt(tM) + ' ฿\n' +
+          '• คงเหลือทั้งหมด: ' + fmt(tAll) + ' ฿ (' + data.length + ' รายการ' + (oAll > 0 ? ' · จ่ายออกรวม −' + fmt(oAll) + ' ฿' : '') + ')\n' +
+          '• ลูกค้า: ' + custs + ' ราย · เงินเข้าตรวจสลิปแล้ว ' + verified + '/' + inCount +
+          (pendingData.length ? '\n• 🕒 รออนุมัติ ' + pendingData.length + ' รายการ' : '');
+      }
+      // มีเงื่อนไข → สรุปตามเงื่อนไข
+    case 'sum': case 'list': {
+      const list = applyFilters(f);
+      const label = filterLabel(f);
+      if(!list.length){
+        if(f.amount && f.amount.eq != null && !f.period) return guessNote(f) + '🔍 ไม่พบยอดโอน ' + fmt(f.amount.eq) + ' ฿ ในระบบค่ะ\nลองเช็คจำนวนเงินอีกครั้ง หรือรายการอาจยังไม่ถูกบันทึกนะคะ';
+        return guessNote(f) + empty(label);
+      }
+      if(f.amount && f.amount.eq != null){
+        const nToday = list.filter(r => r.date === today).length;
+        return guessNote(f) + '🔍 พบ' + amtLabel(f.amount) + ' ' + list.length + ' รายการ' + (nToday ? ' (วันนี้ ' + nToday + ' รายการ ✅)' : (f.period ? '' : ' (วันนี้ยังไม่มี)')) + ':\n\n' + listLines(list, 6) + LEGEND;
+      }
+      if(q.intent === 'list' || specific(f)) return guessNote(f) + summaryReply(list, label) + '\n\n' + listLines(list, q.intent === 'list' ? 10 : 6);
+      if(f.type === 'out') return '💸 จ่ายออก (' + filterLabel(Object.assign({}, f, { type: null })) + ')\nรวม −' + fmt(sumOut(list)) + ' ฿ · ' + list.length + ' รายการ\n\n' + listLines(list, 8);
+      return summaryReply(list, 'ยอด ' + label);
+    }
+  }
+  return null;
 }
 
 function botReply(text){
   if(!ready) return 'ยังโหลดข้อมูลไม่เสร็จเลยค่ะ รอสักครู่แล้วถามใหม่นะคะ ⏳';
-  const t = text.toLowerCase().replace(/,/g,'');
-  const today = todayStr();
-
-  // ---- ช่วยเหลือ ----
-  if(/ช่วยเหลือ|ทำอะไรได้|help|วิธีใช้|ใช้ยังไง/.test(t)){
-    return '🤖 น้องเฮิร์ตช่วยได้แบบนี้ค่ะ:\n\n' +
-      '• "สรุป" — ภาพรวมทั้งร้าน\n' +
-      '• "ยอดวันนี้" / "ยอดเมื่อวาน" / "ยอด 7 วัน" / "ยอดเดือนนี้" / "ยอดเดือนที่แล้ว" / "ยอดทั้งหมด"\n' +
-      '• "เทียบเดือน" / "เทียบสัปดาห์" — เทียบยอดกับช่วงก่อน\n' +
-      '• "ลูกค้าประจำ" — ใครโอนบ่อยสุด\n' +
-      '• "รายการล่าสุด" — ดู 5 รายการล่าสุด\n' +
-      '• "เช็ค 500" — เช็คว่ามียอดโอน 500 บาทเข้ามาไหม\n' +
-      '• "ค้นหา สมชาย" — หารายการตามชื่อลูกค้า\n' +
-      '• "ดูสลิป" — ดูรูปสลิป (หรือ "ดูสลิป สมชาย")\n' +
-      '• "แยกตามธนาคาร" / "ยอดสูงสุด" / "ยังไม่ตรวจสลิป"';
+  const q = parseQuery(text);
+  // ถามต่อ: "แล้วเดือนก่อนล่ะ" → ใช้เงื่อนไขเดิม เปลี่ยนเฉพาะส่วนที่พูดถึงใหม่
+  if(q.follow && lastQ){
+    q.f = Object.assign({}, lastQ.f, q.f);
+    if(!q.periods.length && lastQ.periods) q.periods = lastQ.periods;
+    if(!q.intent || q.intent === 'sum') q.intent = lastQ.intent || q.intent;
+    if(q.topN == null) q.topN = lastQ.topN;
   }
-
-  // ---- สรุปภาพรวม ----
-  if(/สรุป|ภาพรวม|overview|เป็นไงบ้าง|โดยรวม|dashboard/.test(t)){
-    if(!data.length) return 'ยังไม่มีรายการในระบบเลยค่ะ';
-    const tD = sum(filterRange(today,today));
-    const t7 = sum(filterRange(daysAgoStr(6),today));
-    const tM = sum(data.filter(r => (r.date||'').slice(0,7) === monthStr(0)));
-    const tAll = sum(data), oAll = sumOut(data);
-    const custs = new Set(data.filter(r => !isOut(r)).map(r => r.name || 'ไม่ระบุ')).size;
-    const inCount = data.filter(r => !isOut(r)).length, verified = data.filter(r => r.slipVerified).length;
-    return '📋 สรุปภาพรวม HURT SHOP (ยอดสุทธิ = รับเข้า − จ่ายออก)\n\n' +
-      '• วันนี้: ' + fmt(tD) + ' ฿\n' +
-      '• 7 วันล่าสุด: ' + fmt(t7) + ' ฿\n' +
-      '• เดือนนี้: ' + fmt(tM) + ' ฿\n' +
-      '• คงเหลือทั้งหมด: ' + fmt(tAll) + ' ฿ (' + data.length + ' รายการ' + (oAll > 0 ? ' · จ่ายออกรวม −' + fmt(oAll) + ' ฿' : '') + ')\n' +
-      '• ลูกค้า: ' + custs + ' ราย · เงินเข้าตรวจสลิปแล้ว ' + verified + '/' + inCount;
+  if(!q.intent && (Object.keys(q.f).length)) q.intent = 'sum';   // มีแต่เงื่อนไข เช่น "สมชายเดือนนี้" → สรุปตามเงื่อนไข
+  const reply = q.intent ? answer(q) : null;
+  if(reply){
+    if(!['help', 'greet', 'thanks'].includes(q.intent)) lastQ = { f: q.f, periods: q.periods, intent: q.intent, topN: q.topN };
+    return reply;
   }
-
-  // ---- เทียบยอด (เดือน/สัปดาห์) ----
-  if(/เทียบ|เปรียบเทียบ|เยอะกว่า|มากกว่า|น้อยกว่า|ดีกว่า|โตขึ้น/.test(t)){
-    let cur, prev, curLabel, prevLabel;
-    if(/สัปดาห์|อาทิตย์|7\s*วัน/.test(t)){
-      cur = sum(filterRange(daysAgoStr(6),today)); prev = sum(filterRange(daysAgoStr(13),daysAgoStr(7)));
-      curLabel = '7 วันล่าสุด'; prevLabel = '7 วันก่อนหน้า';
-    } else {
-      cur = sum(data.filter(r => (r.date||'').slice(0,7) === monthStr(0)));
-      prev = sum(data.filter(r => (r.date||'').slice(0,7) === monthStr(-1)));
-      curLabel = 'เดือนนี้'; prevLabel = 'เดือนที่แล้ว';
-    }
-    const diff = cur - prev;
-    const pct = prev > 0 ? Math.round(Math.abs(diff)/prev*100) : (cur > 0 ? 100 : 0);
-    const arrow = diff > 0 ? '📈 เพิ่มขึ้น' : (diff < 0 ? '📉 ลดลง' : '➡️ เท่าเดิม');
-    return '⚖️ เทียบ ' + curLabel + ' กับ ' + prevLabel + '\n\n' +
-      '• ' + curLabel + ': ' + fmt(cur) + ' ฿\n' +
-      '• ' + prevLabel + ': ' + fmt(prev) + ' ฿\n\n' +
-      arrow + ' ' + fmt(Math.abs(diff)) + ' ฿' + (prev > 0 ? ' (' + pct + '%)' : '');
-  }
-
-  // ---- ลูกค้าประจำ (โอนบ่อยสุด) ----
-  if(/ลูกค้าประจำ|ขาประจำ|โอนบ่อย|บ่อยสุด|ประจำ/.test(t)){
-    if(!data.length) return 'ยังไม่มีรายการในระบบเลยค่ะ';
-    const g = {};
-    data.filter(r => !isOut(r)).forEach(r => { const n = r.name || 'ไม่ระบุ'; g[n] = g[n] || {n:0,s:0}; g[n].n++; g[n].s += Number(r.amount||0); });   // นับเฉพาะเงินเข้า (จ่ายออกไม่ใช่ลูกค้า)
-    const rows = Object.entries(g).sort((a,b) => b[1].n - a[1].n || b[1].s - a[1].s).slice(0,5);
-    return '⭐ ลูกค้าที่โอนบ่อยสุด (Top 5):\n\n' + rows.map(([n,v],i) => (i+1) + '. ' + n + ' — ' + v.n + ' ครั้ง (รวม ' + fmt(v.s) + ' ฿)').join('\n');
-  }
-
-  // ---- รายการล่าสุด ----
-  if(/ล่าสุด|รายการใหม่|เพิ่งเข้า|เมื่อกี้/.test(t)){
-    const list = sortRecent(data).slice(0,5);
-    if(!list.length) return 'ยังไม่มีรายการในระบบเลยค่ะ';
-    return '🕐 5 รายการล่าสุด:\n\n' + list.map(recLine).join('\n');
-  }
-
-  // ---- ดูสลิป (แสดงรายการที่มีสลิป พร้อมปุ่มดู) ----
-  if(/ดูสลิป|ขอสลิป|เปิดสลิป|รูปสลิป|ดูรูป/.test(t)){
-    const q = text.toLowerCase().replace(/ขอ|ดู|เปิด|รูป|สลิป|หน่อย|ให้|ครับ|ค่ะ|คะ|ที|ของ|อยาก/g,'').trim();
-    let list = sortRecent(data.filter(r => r.slipVerified || r.hasImg));
-    if(q) list = list.filter(r => (r.name||'').toLowerCase().includes(q) || (r.note||'').toLowerCase().includes(q));
-    if(!list.length) return q ? ('🔍 ไม่พบสลิปของ "' + q + '" ค่ะ') : '📭 ยังไม่มีรายการที่มีสลิปเก็บไว้ค่ะ\n(สลิปจะเก็บให้เฉพาะรายการที่เพิ่มหลังเปิดฟีเจอร์นี้)';
-    const show = list.slice(0,8);
-    return '📎 รายการที่มีสลิป' + (q ? ' ของ "' + q + '"' : '') + ' (' + list.length + ' รายการ) — กดปุ่มดูสลิปได้เลยค่ะ:\n\n' + show.map(recLine).join('\n') + (list.length > 8 ? '\n...และอีก ' + (list.length-8) + ' รายการ' : '');
-  }
-
-  // ---- ยังไม่ตรวจสลิป ----
-  if(/ไม่ตรวจ|ยังไม่ได้ตรวจ|ไม่ผ่าน|ไม่มีสลิป|ค้าง/.test(t)){
-    const list = sortRecent(data.filter(r => !r.slipVerified && !isOut(r)));   // จ่ายออกไม่ต้องตรวจธนาคาร
-    if(!list.length) return '✅ ทุกรายการตรวจสลิปเรียบร้อยหมดแล้วค่ะ';
-    const show = list.slice(0,8);
-    return '⚠️ รายการที่ยังไม่ผ่านการตรวจสลิป (' + list.length + ' รายการ):\n\n' + show.map(recLine).join('\n') + (list.length > 8 ? '\n...และอีก ' + (list.length-8) + ' รายการ' : '');
-  }
-
-  // ---- แยกตามธนาคาร ----
-  if(/ธนาคาร|แบงค์|แบงก์|bank/.test(t)){
-    if(!data.length) return 'ยังไม่มีรายการในระบบเลยค่ะ';
-    const g = {};
-    data.forEach(r => { const b = r.bank || 'ไม่ระบุ'; g[b] = g[b] || {n:0,s:0}; g[b].n++; g[b].s += signedAmt(r); });   // สุทธิ (จ่ายออกเป็นลบ)
-    const rows = Object.entries(g).sort((a,b) => b[1].s - a[1].s)
-      .map(([b,v]) => '🏦 ' + b + ': ' + fmt(v.s) + ' ฿ (' + v.n + ' รายการ)');
-    return '📊 ยอดสุทธิแยกตามธนาคาร (รับเข้า − จ่ายออก):\n\n' + rows.join('\n');
-  }
-
-  // ---- สูงสุด ----
-  if(/สูงสุด|มากสุด|เยอะสุด|top/.test(t)){
-    if(!data.length) return 'ยังไม่มีรายการในระบบเลยค่ะ';
-    const top = data.filter(r => !isOut(r)).sort((a,b) => Number(b.amount||0) - Number(a.amount||0)).slice(0,3);
-    if(!top.length) return 'ยังไม่มีรายการเงินเข้าเลยค่ะ';
-    return '🏆 ยอดโอนเข้าสูงสุด 3 อันดับ:\n\n' + top.map((r,i) => (i+1) + '. ' + recLine(r)).join('\n');
-  }
-
-  // ---- ค้นหาตามชื่อ ----
-  let m = text.match(/(?:ค้นหา|หาชื่อ|ชื่อ|ของ)\s*[:：]?\s*(\S.*)/);
-  if(m && !/ยอด|วัน|เดือน|สลิป|ธนาคาร/.test(m[1])){
-    const q = m[1].trim().toLowerCase();
-    const list = sortRecent(data.filter(r => (r.name||'').toLowerCase().includes(q) || (r.note||'').toLowerCase().includes(q)));
-    if(!list.length) return '🔍 ไม่พบรายการของ "' + m[1].trim() + '" ค่ะ';
-    const show = list.slice(0,8);
-    return '🔍 พบ ' + list.length + ' รายการของ "' + m[1].trim() + '" (รวม ' + fmt(sum(list)) + ' ฿):\n\n' + show.map(recLine).join('\n') + (list.length > 8 ? '\n...และอีก ' + (list.length-8) + ' รายการ' : '');
-  }
-
-  // ---- ช่วงเวลา ----
-  if(/วันนี้/.test(t)) return summaryReply(filterRange(today, today), 'ยอดวันนี้ (' + thaiDate(today) + ')');
-  if(/เมื่อวาน/.test(t)){ const y = daysAgoStr(1); return summaryReply(filterRange(y, y), 'ยอดเมื่อวาน (' + thaiDate(y) + ')'); }
-  if(/7\s*วัน|เจ็ดวัน|สัปดาห์|อาทิตย์/.test(t)) return summaryReply(filterRange(daysAgoStr(6), today), 'ยอด 7 วันล่าสุด');
-  if(/เดือนที่แล้ว|เดือนก่อน/.test(t)){ const ym = monthStr(-1); const list = data.filter(r => (r.date||'').slice(0,7) === ym); return summaryReply(list, 'ยอด' + MON_TH[Number(ym.slice(5))-1] + ' ' + (Number(ym.slice(0,4))+543)); }
-  if(/เดือนนี้/.test(t)){ const ym = monthStr(0); const list = data.filter(r => (r.date||'').slice(0,7) === ym); return summaryReply(list, 'ยอดเดือนนี้ (' + MON_TH[Number(ym.slice(5))-1] + ')'); }
-  if(/ทั้งหมด|รวมทุก|ตั้งแต่ต้น/.test(t)) return summaryReply(data, 'ยอดทั้งหมด');
-
-  // ---- เช็คยอดเงินตามจำนวน ----
-  m = t.match(/(\d+(?:\.\d+)?)/);
-  if(m && /เช็ค|โอน|เข้า|มี|หา|สลิป|check|ยอด/.test(t)){
-    const amt = Number(m[1]);
-    const list = sortRecent(data.filter(r => Number(r.amount) === amt));
-    if(!list.length) return '🔍 ไม่พบยอดโอน ' + fmt(amt) + ' ฿ ในระบบค่ะ\nลองเช็คจำนวนเงินอีกครั้ง หรือรายการอาจยังไม่ถูกบันทึกนะคะ';
-    const show = list.slice(0,5);
-    return '🔍 พบยอด ' + fmt(amt) + ' ฿ จำนวน ' + list.length + ' รายการ:\n\n' + show.map(recLine).join('\n') + (list.length > 5 ? '\n...และอีก ' + (list.length-5) + ' รายการ' : '') + '\n\n✅ = ตรวจสลิปกับธนาคารแล้ว · ⏳ = มีสลิปแต่ยังไม่ยืนยัน · 📝 = กรอกเอง';
-  }
-
-  // ---- ทักทาย ----
-  if(/สวัสดี|หวัดดี|ดีครับ|ดีค่ะ|hello|hi/.test(t)){
-    return 'สวัสดีค่ะ 🙏 น้องเฮิร์ตพร้อมช่วยเช็คยอดแล้วค่ะ\nตอนนี้มี ' + data.length + ' รายการในระบบ ยอดคงเหลือสุทธิ ' + fmt(sum(data)) + ' ฿\nพิมพ์ "ช่วยเหลือ" เพื่อดูว่าถามอะไรได้บ้างนะคะ';
-  }
-  if(/ขอบคุณ|ขอบใจ|thank|โอเค/.test(t)) return 'ยินดีค่ะ 💙';
-
-  return 'ขออภัยค่ะ น้องเฮิร์ตยังไม่เข้าใจคำถามนี้ 🙏\nลองถามแบบนี้ดูนะคะ:\n• "สรุป" — ภาพรวมร้าน\n• "เทียบเดือน" — เทียบยอด\n• "ลูกค้าประจำ" — ใครโอนบ่อย\n• "ดูสลิป" / "รายการล่าสุด"\nหรือพิมพ์ "ช่วยเหลือ" เพื่อดูทั้งหมดค่ะ';
+  return 'ขออภัยค่ะ น้องเฮิร์ตยังไม่เข้าใจคำถามนี้ 🙏\nลองถามแบบนี้ดูนะคะ:\n• "สมชายเดือนนี้โอนกี่ครั้ง"\n• "590 เข้ายัง" / "ใครโอนเกิน 1000"\n• "วันไหนขายดีสุด" / "เทียบเดือน"\n• "ถึงเป้ายัง" / "รออนุมัติ"\nหรือพิมพ์ "ช่วยเหลือ" เพื่อดูทั้งหมดค่ะ';
 }
 
 /* ═══════════ โหมด AI (Claude ผ่าน Worker) ═══════════ */
@@ -535,7 +862,7 @@ async function aiReply(text){
 /* ═══════════ chat UI ═══════════ */
 const chatEl = document.getElementById('chat');
 const inputEl = document.getElementById('input');
-const QUICK = ['สรุป', 'ยอดวันนี้', 'รายการล่าสุด', 'ดูสลิป', 'ลูกค้าประจำ', 'เทียบเดือน', 'ยอดเดือนนี้', 'แยกตามธนาคาร', 'ยังไม่ตรวจสลิป', 'ช่วยเหลือ'];
+const QUICK = ['สรุป', 'ยอดวันนี้', 'เทียบเดือน', 'วันไหนขายดีสุด', 'ลูกค้าประจำ', 'รายการล่าสุด', 'ถึงเป้ายัง', 'รออนุมัติ', 'ยังไม่ตรวจสลิป', 'ดูสลิป', 'ช่วยเหลือ'];
 
 /* ripple ตอนแตะปุ่ม/เมนู */
 document.addEventListener('pointerdown', function(e){
@@ -692,6 +1019,13 @@ function connectRT(cfg, room){
       setSync(false, 'เชื่อมต่อไม่ได้');
       loadLocalFallback();
     });
+    // คิวรออนุมัติ + เป้ายอด (อ่านอย่างเดียว — ถ้า rules ไม่เปิด path ไหนก็ข้ามเงียบๆ)
+    db.ref('rooms/' + room + '/pending').on('value', snap => {
+      pendingData = Object.values(snap.val() || {}).filter(x => x && typeof x === 'object' && x.id);
+    }, () => { pendingData = []; });
+    db.ref('rooms/' + room + '/meta/goal').on('value', snap => {
+      const v = Number(snap.val()); if(isFinite(v) && v >= 0) goalAmt = v;
+    }, () => {});
   } catch(e){
     setSync(false, 'config ไม่ถูกต้อง');
     loadLocalFallback();
@@ -705,6 +1039,7 @@ function loadLocalFallback(){
 }
 
 /* ═══════════ boot ═══════════ */
+try { const g = Number(localStorage.getItem('bank_goal_month')); if(isFinite(g) && g > 0) goalAmt = g; } catch(e) {}   // เป้าที่หน้าแรกจำไว้ (โดเมนเดียวกัน) — ใช้ก่อน/แทนค่าจาก Firebase
 (function boot(){
   const ac = activeConfig();
   if(!ac){ hideLogin(); loadLocalFallback(); return; }
@@ -721,6 +1056,7 @@ function loadLocalFallback(){
   showLogin('กำลังตรวจสอบ...');
   firebase.auth().onAuthStateChanged(user => {
     if(user && isAllowed(user.email)){
+      currentUser = user;
       hideLogin();
       connectRT(ac.cfg, ac.room);
     } else if(user){
