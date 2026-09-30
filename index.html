@@ -1442,7 +1442,7 @@ Object.assign(ICN, {
 const BANK_UI = { 'กสิกรไทย': ['K', '#138f2d'], 'ไทยพาณิชย์': ['SCB', '#4e2e7f'], 'กรุงเทพ': ['BBL', '#1e4598'], 'กรุงไทย': ['KTB', '#1ba5e1'],
   'กรุงศรีอยุธยา': ['BAY', '#fec43b', '#3b2a00'], 'ทหารไทยธนชาต': ['ttb', '#1453ff'], 'ออมสิน': ['GSB', '#eb198d'], 'พร้อมเพย์': ['PP', '#1d3f73'], 'TrueMoney': ['TM', '#f47920'] };
 const ico = (n, c) => '<svg class="ic' + (c ? ' ' + c : '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICN[n] || '') + '</svg>';
-const APP_VER = 'v7.31';   // โชว์บนหน้า login — เช็คจากภาพหน้าจอได้ว่าเครื่องรันโค้ดรุ่นไหน (กันงงเรื่องแคช)
+const APP_VER = 'v7.32';   // โชว์บนหน้า login — เช็คจากภาพหน้าจอได้ว่าเครื่องรันโค้ดรุ่นไหน (กันงงเรื่องแคช)
 const LKEY = 'bank_transfers_v1';      // local fallback store
 const CFGKEY = 'bank_fb_config';        // saved firebase config (JSON string)
 const ROOMKEY = 'bank_room';            // saved room code
@@ -2148,12 +2148,15 @@ async function ocrSlipText(img, mode) {
     return (r && r.data && r.data.text) || '';
   } finally { releaseOcrWorker(); }
 }
+// ข้อความ OCR → รูปแบบกลาง (เลขไทย→อารบิก, สระอำที่แยกกัน, เครื่องหมายคำพูดขยะ)
+function normOcr(s) {
+  return String(s || '').replace(/[๐-๙]/g, d => String('๐๑๒๓๔๕๖๗๘๙'.indexOf(d)))
+    .replace(/\u0e4d\u0e32/g, 'ำ').replace(/[“”"„]/g, '').replace(/\u00a0/g, ' ');
+}
 // แยก ยอด/ธนาคาร/ชื่อ/วันที่/เลขอ้างอิง จากข้อความในสลิป (ทนตัวอักษรที่ OCR อ่านเพี้ยน)
 function parseSlipInfo(raw) {
   const out = {};
-  const text = String(raw || '')
-    .replace(/[๐-๙]/g, d => String('๐๑๒๓๔๕๖๗๘๙'.indexOf(d)))   // เลขไทย → เลขอารบิก
-    .replace(/ํา/g, 'ำ').replace(/[“”"„]/g, '').replace(/ /g, ' ');
+  const text = normOcr(raw);
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   const flat = l => l.replace(/\s+/g, ' ');
   const toIdx = lines.findIndex(l => /ไปยัง|^\W*to\b/i.test(l));
@@ -2194,12 +2197,26 @@ function parseSlipInfo(raw) {
     const body = n.replace(/^(นางสาว|นาย|นาง|น\.ส\.|MR\.?|MRS\.?|MS\.?|MISS)\s*/i, '');
     return (body.match(/[ก-๙A-Za-z]/g) || []).length >= 3 ? n : '';
   };
-  const names = lines.map((l, i) => ({ i, n: nameOf(l) })).filter(x => x.n);
+  // คำนำหน้าที่ฟอนต์บางธนาคาร (เช่น SCB) ทำให้อ่านเพี้ยน: บางสาว/งางสาว → นางสาว, บาย → นาย
+  const fixTitle = n => n.replace(/^[บงมน]างสาว/, 'นางสาว').replace(/^[บงม]าย(?=[ก-๙])/, 'นาย').replace(/^[บงม]าง(?=\s*[ก-๙])/, 'นาง');
+  const tidyName = n => n.replace(/\s*\*[\s*]*$/, '***').replace(/([^\s])([ก-ฮA-Za-z])\*\*\*$/, '$1 $2***')
+    .replace(/([^\s.])((?:[เแโใไ][ก-ฮ]?|[ก-ฮA-Z]))\.$/, '$1 $2.');   // "กรพินโ." → "กรพิน โ."
+  const afterLabel = (i, re) => {   // "จาก      @ นางสาว กรพิน โ." → "นางสาว กรพิน โ."
+    const m = lines[i].match(re); if (!m) return '';
+    let toks = lines[i].slice(m.index + m[0].length).trim().split(/\s+/).filter(Boolean);
+    while (toks.length > 1 && (toks[0].length <= 2 || !/[ก-ฮA-Za-z]{2}/.test(toks[0]))) toks.shift();   // ตัดไอคอน/ขยะนำหน้า
+    const n = tidyName(fixTitle(toks.join(' ').split(/\s{2,}/)[0]));
+    return (n.replace(/^(นางสาว|นาย|นาง|MR\.?|MRS\.?|MS\.?|MISS)\s*/i, '').match(/[ก-๙A-Za-z]/g) || []).length >= 3 ? n : '';
+  };
+  const fromIdx = lines.findIndex(l => /^[^ก-๙A-Za-z0-9]{0,4}[จอ]าก(?![ก-๙])|^[^A-Za-z0-9ก-๙]{0,4}from\b/i.test(l));
+  if (fromIdx >= 0) { const n = afterLabel(fromIdx, /[จอ]าก|from/i); if (n) out.nameFrom = n; }
+  if (toIdx >= 0) { const n = afterLabel(toIdx, /ไปยัง|to\b/i); if (n) out.nameTo = n; }
+  const names = lines.map((l, i) => ({ i, n: nameOf(fixTitle(l.replace(/^[^ก-๙A-Za-z0-9]+/, ''))) })).filter(x => x.n);
   if (toIdx >= 0) {
     const f = names.filter(x => x.i < toIdx).pop(), t = names.find(x => x.i > toIdx);
-    if (f) out.nameFrom = f.n;
-    if (t) out.nameTo = t.n;
-  } else if (names.length) { out.nameFrom = names[0].n; if (names[1]) out.nameTo = names[1].n; }
+    if (f && !out.nameFrom) out.nameFrom = tidyName(f.n);
+    if (t && !out.nameTo) out.nameTo = tidyName(t.n);
+  } else if (names.length && !out.nameFrom) { out.nameFrom = tidyName(names[0].n); if (names[1]) out.nameTo = tidyName(names[1].n); }
   // วันที่: "25 ก.ย. 2569" / "25 ก.ุย. 69" (สระเพี้ยน) / "25 Sep 2026"
   const MON = { 'มค': 1, 'กพ': 2, 'มีค': 3, 'เมย': 4, 'พค': 5, 'มิย': 6, 'กค': 7, 'สค': 8, 'กย': 9, 'ตค': 10, 'พย': 11, 'ธค': 12 };
   const EN = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
@@ -2209,8 +2226,8 @@ function parseSlipInfo(raw) {
     if (mo && d >= 1 && d <= 31 && y >= 2020 && y <= 2100) { out.date = y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0'); return true; }
     return false;
   };
-  for (const l of lines) {
-    const fl = flat(l);
+  for (let li2 = 0; li2 < lines.length; li2++) {
+    const fl = flat(lines[li2]);
     let m, ok = false;
     const re = /(\d{1,2})\s*([ก-๙.\s]{2,9}?)\s*(\d{4}|\d{2})(?!\d)/g;
     while (!ok && (m = re.exec(fl))) ok = setDate(+m[1], MON[m[2].replace(/[^ก-ฮีิเ]/g, '')], +m[3], true);
@@ -2221,6 +2238,7 @@ function parseSlipInfo(raw) {
   const refTok = l => {
     let best = '';
     for (const t0 of l.split(/\s+/)) {
+      if (/[ก-๙]/.test(t0)) continue;   // มีอักษรไทยปนในเลขอ้างอิง = อ่านเพี้ยน
       let t = t0.replace(/[^A-Za-z0-9]/g, '');
       if (t.length < 10 || (t.match(/\d/g) || []).length < 5) continue;
       if ((t.match(/\d/g) || []).length / t.length >= 0.6) t = t[0] + t.slice(1).replace(/[Oo]/g, '0').replace(/[Il]/g, '1');   // เกือบเป็นเลขล้วน: O→0, l→1
@@ -2241,14 +2259,37 @@ function parseSlipInfo(raw) {
 }
 // อ่านสลิปครบชุด: OCR รอบแรก (ขาวดำ) → ข้อมูลสำคัญหาย = อ่านรอบสองแบบภาพเดิมมาเติม → ข้อมูลจาก QR ทับ (แม่นกว่า)
 async function readSlipOCR(img, qr) {
-  const info = parseSlipInfo(await ocrSlipText(img, 'gray'));
-  if (!info.amount || !info.date || !info.nameFrom) {
-    const i2 = parseSlipInfo(await ocrSlipText(img, 'plain'));
-    for (const k of Object.keys(i2)) if (info[k] == null) info[k] = i2[k];
-  }
+  const info = parseSlipInfo(await ocrSlipText(img, 'gray'));   // รอบหลัก: ขาวดำ
+  const i2 = parseSlipInfo(await ocrSlipText(img, 'plain'));     // รอบสอง: ภาพเดิม (บางฟอนต์ เช่น SCB อ่านชัดกว่า) — เติมช่องที่ยังขาด
+  for (const k of Object.keys(i2)) if (info[k] == null) info[k] = i2[k];
+  info._alt = i2;   // เก็บผลรอบสองไว้เทียบชื่อกับรายชื่อลูกค้า
   const q = parseSlipQR(qr);
   if (q && q.crcOk) { if (q.txnRef) info.txnRef = q.txnRef.toUpperCase(); if (q.bank) info.bankFrom = q.bank; }
   return info;
+}
+function _lev(a, b) {
+  const m = a.length, n = b.length; if (!m || !n) return m || n;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[n];
+}
+function snapKnownName(cands) {
+  const key = s => (s || '').replace(/\*+|[\s.]/g, '').replace(/^(นางสาว|นาย|นาง|MR|MRS|MS|MISS)/i, '').toLowerCase();
+  const known = [...new Set([...(data || []), ...(pendingData || [])].map(x => x && (x.name || '').trim()).filter(n => n && n !== 'ไม่ระบุชื่อ' && n !== 'จ่ายออก'))];
+  let best = null;
+  for (const c of cands.filter(Boolean)) {
+    const kc = key(c); if (kc.length < 4) continue;
+    for (const k of known) {
+      const kk = key(k); if (kk.length < 4) continue;
+      const d = _lev(kc, kk), lim = Math.max(1, Math.floor(kk.length * 0.15));
+      if (d <= lim && (!best || d < best.d)) best = { n: k, d };
+    }
+  }
+  return best ? best.n : '';
 }
 // อ่านเสร็จแล้วเติมเฉพาะช่องที่ยังว่าง — เป็นแค่ตัวช่วยกรอก ผู้ใช้ต้องตรวจเอง (ไม่ใช่การยืนยันธนาคาร)
 async function ocrAutofill(img, baseMsg, silent) {
@@ -2258,24 +2299,32 @@ async function ocrAutofill(img, baseMsg, silent) {
     if (token !== _ocrToken) return;   // ผู้ใช้เปลี่ยนสลิปไปแล้ว
     if (info.txnRef) currentSlipTxn = info.txnRef;   // เก็บเลขที่รายการไว้กันซ้ำตอนบันทึก
     const isOutForm = (typeof modalIO !== 'undefined' && modalIO === 'out');
-    const name = isOutForm ? info.nameTo : info.nameFrom;     // เข้า=ผู้โอน, ออก=ผู้รับ
+    const alt = info._alt || {};
+    const raw = isOutForm ? info.nameTo : info.nameFrom;     // เข้า=ผู้โอน, ออก=ผู้รับ
+    const name = snapKnownName([raw, isOutForm ? alt.nameTo : alt.nameFrom]) || raw;   // ตรงกับชื่อที่เคยบันทึก → ใช้ชื่อเดิม
     const bank = isOutForm ? (info.bankTo || info.bankFrom) : info.bankFrom;
-    const filled = [];
+    const editing = !!document.getElementById('editId').value;   // แก้ไขรายการเดิม: เติมช่องที่ยังว่าง/เป็นค่าเริ่มต้น และวันที่ตามสลิป
+    const filled = [], warns = [];
     const fA = document.getElementById('fAmount');
     if (info.amount && !fA.value) { fA.value = info.amount; _ocrFilledVals.fAmount = fA.value; filled.push('ยอด ' + fmt(info.amount)); }
-    const fN = document.getElementById('fName');
-    if (name && !fN.value.trim()) { fN.value = name; _ocrFilledVals.fName = fN.value; filled.push('ชื่อ'); }
+    else if (info.amount && Math.abs(parseFloat(fA.value) - info.amount) > 0.004) warns.push('ยอดในสลิป <b>' + baht(info.amount) + '</b> ไม่ตรงกับที่กรอกไว้ (' + baht(parseFloat(fA.value) || 0) + ')');
+    const fN = document.getElementById('fName'), curName = fN.value.trim();
+    if (name && (!curName || curName === 'ไม่ระบุชื่อ' || curName === 'จ่ายออก')) { fN.value = name; _ocrFilledVals.fName = fN.value; filled.push('ชื่อ'); }
     const fB = document.getElementById('fBank');
     if (bank && !fB.value && [...fB.options].some(o => o.value === bank)) { fB.value = bank; _ocrFilledVals.fBank = fB.value; filled.push('ธนาคาร' + bank); }
     const fD = document.getElementById('fDate');
-    if (info.date && fD.value === todayStr()) { fD.value = info.date; _ocrFilledVals.fDate = fD.value; filled.push('วันที่'); }
+    if (info.date && fD.value !== info.date && (fD.value === todayStr() || !fD.value || editing)) {
+      const was = fD.value; fD.value = info.date; _ocrFilledVals.fDate = fD.value;
+      filled.push('วันที่' + (editing && was ? ' (เดิม ' + thaiDate(was) + ')' : ''));
+    }
     if (silent) return;
-    if (filled.length)
-      setSlipStatus('warn', baseMsg + '<br>อ่านจากสลิปให้แล้ว: <b>' + esc2(filled.join(' · ')) + '</b> — ตรวจให้ตรงกับสลิปก่อนกดบันทึก');
-    else
-      setSlipStatus('warn', baseMsg + '<br>อ่านตัวหนังสือในสลิปไม่ออก — กรอกเองได้เลย');
+    const msg = [baseMsg,
+      filled.length ? 'อ่านจากสลิปให้แล้ว: <b>' + esc2(filled.join(' · ')) + '</b> — ตรวจให้ตรงกับสลิปก่อนกด' + (editing ? ' "บันทึกการแก้ไข"' : 'บันทึก')
+        : warns.length ? '' : (info.amount || name || info.date) ? 'ข้อมูลในช่องตรงกับสลิปแล้ว' : 'อ่านตัวหนังสือในสลิปไม่ออก — กรอกเองได้เลย',
+      ...warns].filter(Boolean).join('<br>');
+    setSlipStatus(warns.length ? 'warn' : (editing ? 'ok' : 'warn'), msg);
   } catch (e) {
-    if (token === _ocrToken && !silent) setSlipStatus('warn', baseMsg);   // อ่านไม่ได้ก็เงียบๆ กลับข้อความเดิม
+    if (token === _ocrToken && !silent) setSlipStatus('warn', baseMsg || 'อ่านตัวหนังสือในสลิปไม่ได้ — กรอกเองได้เลย');   // อ่านไม่ได้ก็เงียบๆ กลับข้อความเดิม
   }
 }
 /* ---------- เก็บรูปสลิป (บีบอัด + โหนดแยก slips) ---------- */
@@ -2550,10 +2599,16 @@ function slipRoute(img, qr) {
   } else if (qr) {
     const q = parseSlipQR(qr);
     const meta = q && q.crcOk ? [q.bank && 'จาก' + q.bank, q.txnRef && 'อ้างอิง ' + q.txnRef].filter(Boolean).join(' · ') : '';
-    if (slipAlreadyRecorded(document.getElementById('fSlipHash').value, currentSlipTxn))
+    const fB = document.getElementById('fBank');   // ธนาคารผู้โอนจาก QR — เติมทันที ไม่ต้องรออ่านตัวหนังสือ
+    if (q && q.crcOk && q.bank && !fB.value && [...fB.options].some(o => o.value === q.bank)) { fB.value = q.bank; _ocrFilledVals.fBank = q.bank; }
+    const qrMsg = 'อ่าน QR สำเร็จ' + (meta ? ' <small>(' + esc2(meta) + ')</small>' : '');
+    if (_editing) {   // แก้ไขรายการเดิม: ไม่ส่งตรวจธนาคาร — อ่านชื่อ/วันที่จากสลิปมาเติมให้แล้วให้ตรวจเอง
+      setSlipStatus('busy', qrMsg + '<br><small>กำลังอ่านชื่อและวันที่จากสลิป…</small>');
+      if (img) ocrAutofill(img, qrMsg, false);
+    } else if (slipAlreadyRecorded(document.getElementById('fSlipHash').value, currentSlipTxn))
       setSlipStatus('dup', 'สลิปนี้เคยบันทึกแล้ว' + (meta ? ' <small>(' + esc2(meta) + ')</small>' : '') + '<br><small>ถ้าบันทึกต่ออาจกลายเป็นเงินเข้าซ้ำ</small>');
     else
-      setSlipStatus('ok', 'อ่าน QR สำเร็จ' + (meta ? ' <small>(' + esc2(meta) + ')</small>' : '') + ' — กด <b>"ยืนยันและบันทึก"</b><br><small>ยอด ชื่อ และวันที่ ดึงจากธนาคารให้อัตโนมัติ (กันเงินปลอม)</small>');
+      setSlipStatus('ok', qrMsg + ' — กด <b>"ยืนยันและบันทึก"</b><br><small>ยอด ชื่อ และวันที่ ดึงจากธนาคารให้อัตโนมัติ (กันเงินปลอม)</small>');
     if (img && !_editing) ocrAutofill(img, '', true);   // เติมช่องกรอกไว้ก่อนเงียบๆ — ถ้าระบบตรวจสลิปใช้ไม่ได้ จะกรอกเองได้ทันที
   }
   else {
