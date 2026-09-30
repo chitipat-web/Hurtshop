@@ -54,7 +54,7 @@
       <li>กลับมาหน้านี้ แล้ววางในช่องด้านล่าง</li>
     </ol>
     <a class="btn ghost" href="https://dash.cloudflare.com/?to=/:account/workers/services/view/rudybank/production" target="_blank" rel="noopener">เปิด Cloudflare (rudybank) ↗</a>
-    <label for="oldCode">วางโค้ดเดิมตรงนี้</label>
+    <label for="oldCode">วางโค้ดเดิมตรงนี้ <span style="opacity:.8">(หาไม่เจอ? เว้นว่างแล้วกดปุ่ม — จะให้ใส่ค่าเอง)</span></label>
     <textarea id="oldCode" placeholder="วางโค้ดเดิมของ rudybank ทั้งหมด" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
     <button class="btn" id="makeBtn" type="button">สร้างโค้ดใหม่</button>
     <ul class="found" id="found"></ul>
@@ -134,7 +134,7 @@
     const old = $('oldCode').value;
     let v = grab(old);
     if (fromManual) v = { key: real($('mKey').value.trim()) || v.key, branch: real($('mBranch').value.trim()) || v.branch, secret: real($('mSecret').value.trim()) || v.secret };
-    if (!old.trim() && !fromManual) { say('msg1', 'warn', 'วางโค้ดเดิมก่อน'); return; }
+    if (!old.trim() && !fromManual) { $('manual').style.display = 'block'; say('msg1', 'warn', 'ไม่มีโค้ดเดิมก็ได้ — ใส่ 3 ค่าในช่องที่ขึ้นมา แล้วกด "สร้างโค้ดใหม่"'); $('mKey').focus(); return; }
     $('found').innerHTML = [['SLIPOK API Key', v.key], ['SLIPOK Branch ID', v.branch], ['Firebase Database secret', v.secret]]
       .map(([n, x]) => '<li class="' + (x ? 'y' : 'n') + '">' + n + (x ? ' — เจอแล้ว' : ' — ไม่เจอ') + '</li>').join('');
     if (!v.key || !v.branch || !v.secret) {
