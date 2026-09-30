@@ -99,23 +99,37 @@ export default {
     } catch (e) {}
     if (!email || !ALLOWED.map(e => e.toLowerCase()).includes(email)) return J({ ok: false, error: "unauthorized" }, 401);
 
+    // นับจำนวนครั้งที่ใช้ SlipOK ในเดือนนี้ (เวลาไทย) → ฝั่งเว็บแสดงโควต้าคงเหลือ
+    const ym = _ymdTH(Date.now()).slice(0, 7);
+    const usageUrl = FB_DB + "/rooms/" + ROOM + "/meta/slipokUsage.json?auth=" + FB_SECRET;
+    const bumpUsage = async () => {
+      try {
+        await fetch(usageUrl, { method: "PATCH", body: JSON.stringify({ [ym]: { ".sv": { increment: 1 } } }) });
+        const g = await fetch(FB_DB + "/rooms/" + ROOM + "/meta/slipokUsage/" + ym + ".json?auth=" + FB_SECRET);
+        return Number(await g.json()) || 0;
+      } catch (e) { return null; }
+    };
     let v = await verify(body.data, true);
+    const usage = await bumpUsage();
     if (v.dup) { const r = await verify(body.data, false); if (r.ok) r.sokDup = true; v = r; }
-    if (!v.ok) return J({ ok: false, error: v.error || "", notFound: !!v.notFound, reason: v.reason || "" });
+    if (!v.ok) return J({ ok: false, error: v.error || "", notFound: !!v.notFound, reason: v.reason || "", usage });
 
     const id = (v.transRef || "").toString().replace(/[.#$\[\]\/]/g, "_").slice(0, 120);
     if (!id) return J({ ok: false, error: "no transRef" });
     if (v.amount == null || !(Number(v.amount) > 0)) return J({ ok: false, error: "ยอดเงินจากสลิปไม่ถูกต้อง" });   // กันบันทึกยอด null/0
     const g = await fetch(FB_DB + "/rooms/" + ROOM + "/transfers/" + id + ".json?auth=" + FB_SECRET);
     const exist = await g.json().catch(() => null);
-    if (exist && exist.id) return J({ ok: false, alreadyExists: true, record: exist });
+    if (exist && exist.id) return J({ ok: false, alreadyExists: true, record: exist, usage });
 
     // เก็บรูปสลิป (ถ้าส่งมา) — บีบอัดแล้วจากฝั่งเว็บ, จำกัดขนาดกันสแปม
     const hasImg = typeof body.img === "string" && body.img.indexOf("data:image") === 0 && body.img.length < 400000;
     const slipHash = (typeof body.slipHash === "string" ? body.slipHash : "").slice(0, 64);   // จด hash ไฟล์สลิป ให้ฝั่งเว็บกันเครดิตซ้ำข้ามเส้นทาง (QR/คิว) ได้
-    const rec = { id, amount: v.amount, name: v.sender || "ไม่ระบุชื่อ", bank: v.senderBank || "", date: (v.date || "").slice(0, 10), note: (body.note || "").toString().slice(0, 200), slipRef: v.transRef, slipHash, slipVerified: true, createdBy: email, hasImg };
+    const rec = { id, amount: v.amount, name: v.sender || "ไม่ระบุชื่อ", bank: v.senderBank || "", date: (v.date || "").slice(0, 10), note: (body.note || "").toString().slice(0, 200), slipRef: v.transRef, slipHash, slipVerified: true, createdBy: email, createdAt: Date.now(), hasImg };
+    if (hasImg) {
+      try { const ri = await fetch(FB_DB + "/rooms/" + ROOM + "/slips/" + id + ".json?auth=" + FB_SECRET, { method: "PUT", body: JSON.stringify(body.img) }); if (!ri.ok) rec.hasImg = false; }
+      catch (e) { rec.hasImg = false; }
+    }
     await fetch(FB_DB + "/rooms/" + ROOM + "/transfers/" + id + ".json?auth=" + FB_SECRET, { method: "PUT", body: JSON.stringify(rec) });
-    if (hasImg) await fetch(FB_DB + "/rooms/" + ROOM + "/slips/" + id + ".json?auth=" + FB_SECRET, { method: "PUT", body: JSON.stringify(body.img) });
-    return J({ ok: true, record: rec });
+    return J({ ok: true, record: rec, usage });
   }
 };

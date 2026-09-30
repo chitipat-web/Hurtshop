@@ -1047,6 +1047,12 @@
   .set-group.danger .set-row, .set-row.out { color: var(--neg); justify-content: center; font-weight: 600; }
   details.adv { margin: 0 0 0; }
   .ver { text-align: center; font-size: 12px; color: var(--mu2); margin: -8px 0 8px; }
+  .set-row.static { cursor: default; }
+  .set-row.static:active { background: none; }
+  .qbar { display: block; height: 6px; border-radius: 999px; background: rgba(255,255,255,.08); margin-top: 7px; overflow: hidden; }
+  .qbar i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--pos); transition: width .5s ease; }
+  .qbar.low i { background: var(--warn); }
+  .qbar.full i { background: var(--neg); }
 
   /* รายงาน */
   .cbar { background: rgba(63,193,240,.35); }
@@ -1260,10 +1266,14 @@
     <h2 class="sec">ร้าน</h2>
     <div class="set-group">
       <button type="button" class="set-row" onclick="setGoal()"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/></svg></span><span class="st"><b>เป้ายอดต่อเดือน</b><small id="setGoalVal">ยังไม่ได้ตั้ง</small></span><svg class="ic chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
+      <div class="set-row static" id="quotaRow"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.3 7 9.5 4-1.2 7-5 7-9.5V6z"/><path d="m9 12 2 2 4-4"/></svg></span><span class="st"><b>ตรวจสลิปกับธนาคาร (ฟรี 100 ใบ/เดือน)</b><small>ใช้ไป – / 100 ใบ</small><span class="qbar"><i></i></span></span></div>
     </div>
     <h2 class="sec">ข้อมูล</h2>
     <div class="set-group">
-      <button type="button" class="set-row" id="restoreBtn" onclick="restoreBackup()"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></span><span class="st"><b>กู้คืนข้อมูล</b><small>จากข้อมูลสำรองในเครื่องนี้</small></span><svg class="ic chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
+      <button type="button" class="set-row" onclick="backupToFile()"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg></span><span class="st"><b>สำรองข้อมูลเป็นไฟล์</b><small id="backupWhen">รายการ + รูปสลิป</small></span><svg class="ic chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
+      <button type="button" class="set-row" onclick="pickRestoreFile()"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V9"/><path d="m7 14 5-5 5 5"/><path d="M5 4h14"/></svg></span><span class="st"><b>กู้คืนจากไฟล์สำรอง</b><small>เพิ่มเฉพาะรายการที่หายไป ไม่ทับของเดิม</small></span><svg class="ic chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
+      <input type="file" id="restoreFile" accept="application/json,.json" class="vh" onchange="restoreFromFile(this)">
+      <button type="button" class="set-row" id="restoreBtn" onclick="restoreBackup()"><span class="tile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></span><span class="st"><b>กู้คืนจากเครื่องนี้</b><small>หลังกด "ล้างข้อมูลทั้งหมด" บนเครื่องนี้</small></span><svg class="ic chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
     </div>
     <details class="adv">
       <summary><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><div>ตั้งค่าขั้นสูง<small>ฐานข้อมูล Real-time และ SlipOK</small></div><svg class="ic chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary>
@@ -1442,7 +1452,7 @@ Object.assign(ICN, {
 const BANK_UI = { 'กสิกรไทย': ['K', '#138f2d'], 'ไทยพาณิชย์': ['SCB', '#4e2e7f'], 'กรุงเทพ': ['BBL', '#1e4598'], 'กรุงไทย': ['KTB', '#1ba5e1'],
   'กรุงศรีอยุธยา': ['BAY', '#fec43b', '#3b2a00'], 'ทหารไทยธนชาต': ['ttb', '#1453ff'], 'ออมสิน': ['GSB', '#eb198d'], 'พร้อมเพย์': ['PP', '#1d3f73'], 'TrueMoney': ['TM', '#f47920'] };
 const ico = (n, c) => '<svg class="ic' + (c ? ' ' + c : '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICN[n] || '') + '</svg>';
-const APP_VER = 'v7.32';   // โชว์บนหน้า login — เช็คจากภาพหน้าจอได้ว่าเครื่องรันโค้ดรุ่นไหน (กันงงเรื่องแคช)
+const APP_VER = 'v7.33';   // โชว์บนหน้า login — เช็คจากภาพหน้าจอได้ว่าเครื่องรันโค้ดรุ่นไหน (กันงงเรื่องแคช)
 const LKEY = 'bank_transfers_v1';      // local fallback store
 const CFGKEY = 'bank_fb_config';        // saved firebase config (JSON string)
 const ROOMKEY = 'bank_room';            // saved room code
@@ -1640,6 +1650,7 @@ function connectRT(cfg, room) {
       notifyNewRecords(data);
       doneLoading();
       render();
+      if (!_imgFlushedOnce) { _imgFlushedOnce = true; setTimeout(flushImgQueue, 1500); setTimeout(checkBackupNag, 4000); }
     }, err => {
       setSync('err', 'เชื่อมต่อไม่ได้ · ตรวจสิทธิ์ฐานข้อมูล');
       rtOn = false;
@@ -1654,6 +1665,8 @@ function connectRT(cfg, room) {
       renderPending();
     }, () => { pendingData = []; renderPending(); updateTitle(); });
 
+    // จำนวนครั้งที่ใช้ SlipOK เดือนนี้ (Worker รุ่นใหม่นับไว้) — อ่านไม่ได้ก็ใช้การนับในเครื่องแทน
+    db.ref('rooms/' + room + '/meta/slipokUsage/' + _ymNow()).on('value', snap => { const v = Number(snap.val()); _slipokServer = isFinite(v) && v > 0 ? v : null; renderSlipokUsage(); }, () => {});
     // เป้ายอดเดือน sync ทุกเครื่อง — ถ้า rules ยังไม่เปิด path นี้ จะใช้ค่าที่จำไว้ในเครื่องแทนเงียบๆ
     db.ref('rooms/' + room + '/meta/goal').on('value', snap => {
       const v = Number(snap.val());
@@ -1672,6 +1685,7 @@ function openSettings() {
   document.getElementById('sRoom').value = localStorage.getItem(ROOMKEY) || '';
   document.getElementById('sSlipOK').value = localStorage.getItem(SOKEY) || '';
   const vl = document.getElementById('verLine'); if (vl) vl.textContent = 'HURT SHOP ' + APP_VER;
+  renderBackupRow(); renderSlipokUsage();
   renderGoal();
 }
 function closeSettings() { document.getElementById('settings').classList.remove('show'); sheetClosed(); homeTab(); }
@@ -1924,11 +1938,11 @@ async function save() {
     const genAtSave = modalGen;          // จับรุ่น modal — ถ้าเปิด/ปิด modal ระหว่างรอ อย่าไปแตะ modal ใหม่
     btn.disabled = true; btn.textContent = 'กำลังยืนยัน...';
     setSlipStatus('busy', '🛡️ กำลังยืนยันกับธนาคารและบันทึก...');
-    const r = await workerSave(qr, note);
+    const r = await workerSave(qr, note, imgAtSave);
     const sameModal = (genAtSave === modalGen);   // modal เดิมยังเปิดอยู่ไหม
     if (sameModal) { btn.disabled = false; btn.textContent = btn.dataset.label || 'บันทึก'; }
     if (r.ok) {
-      if (imgAtSave && r.record && r.record.id) putSlipImage(r.record.id, imgAtSave);   // เก็บรูปสลิป (ใช้รูปที่จับไว้ ไม่ใช่ global ที่อาจถูกทับ/ล้าง)
+      if (imgAtSave && r.record && r.record.id && !r.record.hasImg) putSlipImage(r.record.id, imgAtSave);   // Worker รุ่นเก่า/เก็บรูปไม่สำเร็จ → เว็บเก็บเอง (ใช้รูปที่จับไว้ ไม่ใช่ global ที่อาจถูกทับ/ล้าง)
       celebrate();   // 🎉 สลิปผ่านการยืนยันธนาคาร — confetti + เสียงติ๊ง
       if (sameModal) { setSlipStatus('ok', '✅ บันทึกแล้ว: ' + esc2(r.record.name) + ' ยอด ' + fmt(r.record.amount) + ' ฿'); setTimeout(() => { if (genAtSave === modalGen) closeModal(); }, 800); }
       return;
@@ -1962,15 +1976,17 @@ async function save() {
   submitPending();
 }
 // บันทึกผ่าน Worker: ส่ง idToken + QR → Worker ตรวจ SlipOK แล้วเขียนเอง (ยอดจากธนาคาร)
-async function workerSave(qr, note) {
+async function workerSave(qr, note, img) {
   const proxy = localStorage.getItem(SOKEY) || BAKED_SLIPOK_PROXY;
   try {
     const user = firebase.auth().currentUser;
     if (!user) return { ok: false, error: 'unauthorized' };
     const idToken = await user.getIdToken();
     const slipHash = document.getElementById('fSlipHash').value || '';   // ส่ง hash ไปให้ worker จด (กันสลิปเดียวถูกเครดิตซ้ำข้ามเส้นทาง QR/คิว — worker เวอร์ชันใหม่เก็บ slipHash ในรายการ)
-    const resp = await fetch(proxy, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken, data: qr, note, slipHash }) });
-    return await resp.json().catch(() => ({ ok: false, error: 'bad response' }));
+    const resp = await fetch(proxy, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken, data: qr, note, slipHash, img: (img && img.length < 390000) ? img : undefined }) });
+    const j = await resp.json().catch(() => ({ ok: false, error: 'bad response' }));
+    if (j && typeof j.usage === 'number') noteSlipokUsage(j.usage);   // Worker รุ่นใหม่ส่งจำนวนที่ใช้เดือนนี้กลับมา
+    return j;
   } catch (e) { return { ok: false, error: 'เชื่อมต่อไม่ได้' }; }
 }
 // เจ้าของกรอกเอง (ข้ามการตรวจ) → เขียนตรง
@@ -2351,10 +2367,73 @@ function slipsRef() {
   if (rtOn && dbRef && dbRef.parent) return dbRef.parent.child('slips');
   try { return firebase.database().ref('rooms/' + BAKED_ROOM + '/slips'); } catch (e) { return null; }
 }
+const IMGQ_KEY = 'bank_img_queue';
+function _imgQ() { try { return JSON.parse(localStorage.getItem(IMGQ_KEY) || '{}') || {}; } catch (e) { return {}; } }
+function _imgQset(q) { try { if (Object.keys(q).length) localStorage.setItem(IMGQ_KEY, JSON.stringify(q)); else localStorage.removeItem(IMGQ_KEY); } catch (e) {} }
+let _imgWarned = false;
 function putSlipImage(id, img) {
-  if (!img) return;
+  if (!img || !id) return Promise.resolve(false);
+  const q = _imgQ(); q[id] = img; _imgQset(q);   // จดไว้ในเครื่องก่อน — ส่งสำเร็จค่อยลบ
   const ref = slipsRef();
-  if (ref) { try { ref.child(id).set(img).catch(() => {}); } catch (e) {} }
+  if (!ref) return Promise.resolve(false);
+  let done;
+  try { done = ref.child(id).set(img); } catch (e) { done = Promise.reject(e); }
+  return done.then(() => { const q2 = _imgQ(); delete q2[id]; _imgQset(q2); return true; })
+    .catch(e => {
+      const denied = /permission/i.test((e && (e.code || e.message)) || '');
+      if (denied) { const q2 = _imgQ(); delete q2[id]; _imgQset(q2); }   // ไม่มีสิทธิ์ = ลองใหม่ก็ไม่ผ่าน
+      if (!_imgWarned) {
+        _imgWarned = true;
+        toast({ where: 'bottom', icon: 'alert', kind: 'pend', ms: 7000, html: denied
+          ? '<b>เก็บรูปสลิปไม่สำเร็จ</b><small>ฐานข้อมูลไม่อนุญาตให้เก็บรูป — รายการบันทึกแล้วแต่ไม่มีรูป</small>'
+          : '<b>ยังเก็บรูปสลิปไม่สำเร็จ</b><small>รายการบันทึกแล้ว · จะส่งรูปให้เองเมื่อเน็ตกลับมา</small>' });
+      }
+      return false;
+    });
+}
+// ส่งรูปที่ค้างในเครื่อง (เน็ตหลุด/ปิดแอประหว่างส่ง) — เรียกหลังต่อฐานข้อมูลได้
+let _imgFlushing = false;
+async function flushImgQueue() {
+  if (_imgFlushing) return; _imgFlushing = true;
+  try {
+    const q = _imgQ(), ids = Object.keys(q);
+    let n = 0;
+    for (const id of ids) {
+      if (await putSlipImage(id, q[id])) n++;
+    }
+    if (n) toast({ where: 'bottom', icon: 'check', ms: 3000, html: 'ส่งรูปสลิปที่ค้างไว้ครบแล้ว (' + n + ' รูป)' });
+  } finally { _imgFlushing = false; }
+}
+
+/* ---------- โควต้าตรวจสลิปฟรี (SlipOK 100 ใบ/เดือน) ---------- */
+const SLIPOK_FREE = 100;
+const USAGE_KEY = 'bank_slipok_usage';   // {ym, n} ที่ Worker แจ้งล่าสุด (สำรองกรณีอ่าน meta ไม่ได้)
+let _slipokServer = null;                // จาก meta/slipokUsage/{เดือนนี้} (Worker รุ่นใหม่นับให้)
+function _ymNow() { return todayStr().slice(0, 7); }
+function noteSlipokUsage(n) {
+  try { localStorage.setItem(USAGE_KEY, JSON.stringify({ ym: _ymNow(), n })); } catch (e) {}
+  renderSlipokUsage();
+}
+// ใช้ไปแล้วเดือนนี้ ≈ ค่ามากสุดของ (ตัวนับจาก Worker, ตัวนับที่จำไว้ในเครื่อง, จำนวนรายการที่ยืนยันธนาคารในเดือนนี้)
+function slipokUsed() {
+  const ym = _ymNow();
+  let local = 0; try { const u = JSON.parse(localStorage.getItem(USAGE_KEY) || 'null'); if (u && u.ym === ym) local = Number(u.n) || 0; } catch (e) {}
+  const recs = (data || []).filter(x => x && x.slipVerified && (x.createdAt ? localDateStr(new Date(x.createdAt)).slice(0, 7) === ym : String(x.date || '').slice(0, 7) === ym)).length;
+  return { used: Math.max(_slipokServer || 0, local, recs), exact: _slipokServer != null || local > 0 };
+}
+function renderSlipokUsage() {
+  const el = document.getElementById('quotaRow'); if (!el) return;
+  const { used, exact } = slipokUsed(), left = Math.max(0, SLIPOK_FREE - used), pct = Math.min(100, used / SLIPOK_FREE * 100);
+  el.querySelector('small').textContent = (exact ? '' : 'ประมาณ ') + 'ใช้ไป ' + used + ' / ' + SLIPOK_FREE + ' ใบ · เหลือ ' + left + ' ใบ';
+  const bar = el.querySelector('.qbar i'); bar.style.width = pct + '%';
+  bar.parentElement.className = 'qbar' + (used >= SLIPOK_FREE ? ' full' : used >= SLIPOK_FREE * 0.9 ? ' low' : '');
+}
+// ข้อความเตือนโควต้าในฟอร์ม (ใช้ตอนแนบสลิปมี QR)
+function slipokQuotaNote() {
+  const { used } = slipokUsed(), left = SLIPOK_FREE - used;
+  if (left <= 0) return '<br><small><b>โควต้าตรวจสลิปฟรีเดือนนี้น่าจะหมดแล้ว</b> — ถ้าตรวจไม่ผ่าน ' + (role === 'owner' ? 'กดบันทึกแบบกรอกเองได้' : 'ส่งให้เจ้าของอนุมัติได้') + '</small>';
+  if (left <= 10) return '<br><small>โควต้าตรวจสลิปฟรีเหลืออีก ~' + left + ' ใบในเดือนนี้</small>';
+  return '';
 }
 
 /* ---------- คิวรออนุมัติ (สลิปไม่มี QR เช่น K BIZ) ---------- */
@@ -2608,7 +2687,7 @@ function slipRoute(img, qr) {
     } else if (slipAlreadyRecorded(document.getElementById('fSlipHash').value, currentSlipTxn))
       setSlipStatus('dup', 'สลิปนี้เคยบันทึกแล้ว' + (meta ? ' <small>(' + esc2(meta) + ')</small>' : '') + '<br><small>ถ้าบันทึกต่ออาจกลายเป็นเงินเข้าซ้ำ</small>');
     else
-      setSlipStatus('ok', qrMsg + ' — กด <b>"ยืนยันและบันทึก"</b><br><small>ยอด ชื่อ และวันที่ ดึงจากธนาคารให้อัตโนมัติ (กันเงินปลอม)</small>');
+      setSlipStatus(SLIPOK_FREE - slipokUsed().used <= 0 ? 'warn' : 'ok', qrMsg + ' — กด <b>"ยืนยันและบันทึก"</b><br><small>ยอด ชื่อ และวันที่ ดึงจากธนาคารให้อัตโนมัติ (กันเงินปลอม)</small>' + slipokQuotaNote());
     if (img && !_editing) ocrAutofill(img, '', true);   // เติมช่องกรอกไว้ก่อนเงียบๆ — ถ้าระบบตรวจสลิปใช้ไม่ได้ จะกรอกเองได้ทันที
   }
   else {
@@ -2651,6 +2730,90 @@ function del(id) {
   });
 }
 const BACKUPKEY = 'bank_backup';
+const LASTBK_KEY = 'bank_last_backup';
+function lastBackupAt() { try { return Number(localStorage.getItem(LASTBK_KEY)) || 0; } catch (e) { return 0; } }
+function renderBackupRow() {
+  const el = document.getElementById('backupWhen'); if (!el) return;
+  const t = lastBackupAt();
+  if (!t) { el.textContent = 'ยังไม่เคยสำรองจากเครื่องนี้ · รายการ + รูปสลิป'; return; }
+  const d = Math.floor((Date.now() - t) / 864e5);
+  el.textContent = 'สำรองล่าสุด ' + (d <= 0 ? 'วันนี้' : d === 1 ? 'เมื่อวาน' : d + ' วันก่อน') + ' · รายการ + รูปสลิป';
+}
+function _dlBlob(blob, name) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+}
+// สำรองทั้งหมดเป็นไฟล์เดียว (.json): รายการ + คิวรออนุมัติ + เป้า + รูปสลิป — เก็บไว้ในเครื่อง/ไดรฟ์ของเจ้าของ
+let _backingUp = false;
+async function backupToFile() {
+  if (role !== 'owner') { alert('เฉพาะเจ้าของสำรองข้อมูลได้'); return; }
+  if (_backingUp) return;
+  const recs = (data || []).filter(x => x && x.id);
+  if (!recs.length) { alert('ยังไม่มีข้อมูลให้สำรอง'); return; }
+  const withImg = recs.filter(x => x.hasImg || x.slipVerified).concat((pendingData || []).filter(x => x && x.hasImg));
+  const mb = Math.max(1, Math.round(withImg.length * 0.13));
+  if (!confirm('สำรองข้อมูลทั้งหมดเป็นไฟล์?\n\n• ' + recs.length + ' รายการ\n• รูปสลิปประมาณ ' + withImg.length + ' รูป (ไฟล์ราว ' + mb + ' MB)\n\nเก็บไฟล์ไว้ใน Google Drive / iCloud / คอม เพื่อความปลอดภัย')) return;
+  _backingUp = true;
+  const closeT = toast({ where: 'bottom', icon: 'download', ms: 600000, html: '<b>กำลังสำรองข้อมูล…</b><small id="bkProg">เตรียมรายการ</small>' });
+  try {
+    const head = { type: 'hurtshop-backup', version: 1, app: APP_VER, room: BAKED_ROOM, createdAt: Date.now(), by: myEmail(),
+      transfers: recs, pending: (pendingData || []).filter(x => x && x.id), goal: goalAmt || 0 };
+    let blob = new Blob([JSON.stringify(head).slice(0, -1) + ',"slips":{']);   // เขียนทีละก้อน ไม่ต้องถือรูปทั้งหมดไว้ในหน่วยความจำ
+    const ref = slipsRef(); let got = 0, first = true, parts = [];
+    for (let i = 0; i < withImg.length; i++) {
+      const id = String(withImg[i].id);
+      try {
+        const v = ref ? (await ref.child(id).once('value')).val() : null;
+        const src = (v && typeof v === 'object') ? v.img : v;
+        if (src) { parts.push((first ? '' : ',') + JSON.stringify(id) + ':' + JSON.stringify(src)); first = false; got++; }
+      } catch (e) {}
+      if (parts.length >= 15 || i === withImg.length - 1) { blob = new Blob([blob, ...parts]); parts = []; }
+      const pg = document.getElementById('bkProg'); if (pg) pg.textContent = 'รูปสลิป ' + (i + 1) + ' / ' + withImg.length;
+    }
+    blob = new Blob([blob, '}}'], { type: 'application/json' });
+    _dlBlob(blob, 'hurtshop-backup_' + todayStr() + '.json');
+    try { localStorage.setItem(LASTBK_KEY, String(Date.now())); } catch (e) {}
+    try { if (rtOn && dbRef && dbRef.parent) dbRef.parent.child('meta/lastBackup').set(Date.now()).catch(() => {}); } catch (e) {}
+    renderBackupRow();
+    closeT();
+    toast({ where: 'bottom', icon: 'check', ms: 6000, html: '<b>สำรองเรียบร้อย</b><small>' + recs.length + ' รายการ · ' + got + ' รูป · ' + (blob.size / 1048576).toFixed(1) + ' MB</small>' });
+  } catch (e) {
+    closeT();
+    alert('สำรองไม่สำเร็จ: ' + (e && e.message || e));
+  } finally { _backingUp = false; }
+}
+// กู้คืนจากไฟล์สำรอง: เพิ่มเฉพาะรายการที่ยังไม่มีในระบบ (ไม่ทับ/ไม่ลบของเดิม) + รูปสลิปของรายการเหล่านั้น
+function pickRestoreFile() { if (role !== 'owner') { alert('เฉพาะเจ้าของกู้คืนได้'); return; } document.getElementById('restoreFile').click(); }
+async function restoreFromFile(input) {
+  const f = input.files && input.files[0]; input.value = '';
+  if (!f) return;
+  let bk;
+  try { bk = JSON.parse(await f.text()); } catch (e) { alert('อ่านไฟล์ไม่ได้ — ต้องเป็นไฟล์ hurtshop-backup_….json'); return; }
+  if (!bk || bk.type !== 'hurtshop-backup' || !Array.isArray(bk.transfers)) { alert('ไฟล์นี้ไม่ใช่ไฟล์สำรองของ HURT SHOP'); return; }
+  const have = new Set((data || []).map(x => x && String(x.id)));
+  const add = bk.transfers.filter(x => x && x.id && !have.has(String(x.id)));
+  const slips = bk.slips || {};
+  const when = bk.createdAt ? new Date(bk.createdAt) : null;
+  const imgs = add.filter(x => slips[x.id]).length;
+  if (!add.length) { alert('ทุกรายการในไฟล์ (' + bk.transfers.length + ' รายการ) มีอยู่ในระบบแล้ว — ไม่ต้องกู้คืน'); return; }
+  const total = add.reduce((s2, x) => s2 + signedAmt(x), 0);
+  if (!confirm('ไฟล์สำรอง' + (when ? ' วันที่ ' + when.getDate() + ' ' + MON_TH[when.getMonth()] + ' ' + (when.getFullYear() + 543) : '') + '\n\nจะเพิ่ม ' + add.length + ' รายการที่ยังไม่มีในระบบ (สุทธิ ' + fmt(total) + ' ฿)\nพร้อมรูปสลิป ' + imgs + ' รูป\n\nรายการที่มีอยู่แล้วจะไม่ถูกแก้ไข — กู้คืนเลยไหม?')) return;
+  _quietAlertsUntil = Date.now() + 15000;   // รายการที่กู้คืนไม่ใช่ "เงินเข้าใหม่"
+  if (rtOn && dbRef) { const obj = {}; add.forEach(it => { obj[it.id] = it; }); await dbRef.update(obj).catch(e => alert('กู้คืนไม่สำเร็จ: ' + e.message)); }
+  else { data = data.concat(add); persistLocal(); render(); }
+  let n = 0; for (const it of add) if (slips[it.id] && await putSlipImage(it.id, slips[it.id])) n++;
+  toast({ where: 'bottom', icon: 'check', ms: 6000, html: '<b>กู้คืนแล้ว ' + add.length + ' รายการ</b><small>รูปสลิป ' + n + ' รูป</small>' });
+}
+// เตือนสำรองข้อมูล: เจ้าของ · มีข้อมูลพอสมควร · ไม่ได้สำรองเกิน 30 วัน · เตือนวันละครั้ง
+function checkBackupNag() {
+  if (role !== 'owner' || (data || []).length < 10) return;
+  const last = lastBackupAt();
+  if (last && Date.now() - last < 30 * 864e5) return;
+  try { if (localStorage.getItem('bank_backup_nag') === todayStr()) return; localStorage.setItem('bank_backup_nag', todayStr()); } catch (e) {}
+  toast({ where: 'bottom', icon: 'download', kind: 'pend', ms: 12000,
+    html: '<b>' + (last ? 'ไม่ได้สำรองข้อมูลมา ' + Math.floor((Date.now() - last) / 864e5) + ' วัน' : 'ยังไม่เคยสำรองข้อมูล') + '</b><small>สำรองเป็นไฟล์เก็บไว้ กันข้อมูลและรูปสลิปหาย</small>',
+    action: { label: 'สำรองเลย', fn: backupToFile } });
+}
 function clearAll() {
   if (role === 'employee') { alert('พนักงานล้างข้อมูลไม่ได้'); return; }
   if (!data.length) { alert('ไม่มีข้อมูลให้ล้าง'); return; }
@@ -2664,12 +2827,11 @@ function clearAll() {
     if (!confirm('⚠️ สำรองข้อมูลในเครื่องไม่สำเร็จ (พื้นที่อาจเต็ม)\nถ้าล้างตอนนี้จะกู้คืนไม่ได้ — ยืนยันจะล้างเลยไหม?')) return;
   }
   if (rtOn && dbRef && dbRef.parent) {
-    dbRef.parent.child('slips').remove().catch(()=>{});
     dbRef.parent.child('pending').remove().catch(()=>{});   // ล้างคิวรออนุมัติด้วย (คิวชี้ไปข้อมูลที่ล้างทิ้งแล้ว)
     dbRef.remove();
   }
   else { data = []; persistLocal(); render(); }
-  alert('ล้างข้อมูลแล้ว\nถ้าพลาด กด "กู้คืนข้อมูล" ในหน้าตั้งค่า เพื่อเอากลับได้ (จากเครื่องนี้)');
+  alert('ล้างข้อมูลแล้ว (รูปสลิปยังเก็บไว้)\nถ้าพลาด กด "กู้คืนจากเครื่องนี้" ในหน้าตั้งค่า เพื่อเอากลับได้');
 }
 function restoreBackup() {
   if (role === 'employee') { alert('พนักงานกู้คืนไม่ได้'); return; }
@@ -3573,7 +3735,7 @@ function googleSignOut() {
   if (window.firebase && firebase.auth) firebase.auth().signOut().then(() => location.reload());
 }
 
-let started = false;
+let started = false, _imgFlushedOnce = false;
 function startApp(room) { if (started) return; started = true; connectRT(activeConfig().cfg, room); setTimeout(() => { if (document.body.classList.contains('loading')) { doneLoading(); render(); } }, 10000); }
 
 /* ---------- boot ---------- */
